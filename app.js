@@ -70,7 +70,7 @@ const MARKERS = {
     joint: ['совместном', 'обеспечение', 'защита', 'координация', 'охрана', 'общие принципы', 'общие вопросы', 'административное', 'трудовое', 'семейное', 'жилищное', 'адвокатура', 'нотариат', 'кадры']
 };
 
-/* --- ДАННЫЕ ДЛЯ КАРТЫ (Федеральные округа - Полные названия) --- */
+/* --- ДАННЫЕ ДЛЯ КАРТЫ --- */
 const FEDERAL_DISTRICTS = {
     "reg-cen": {
         title: "Центральный федеральный округ",
@@ -106,7 +106,7 @@ const FEDERAL_DISTRICTS = {
     }
 };
 
-/* --- ИГРА №13 (Полномочия) --- */
+/* --- ИГРА №13 --- */
 const POWERS = [
     { text: "Объявление амнистии", target: "gd" },
     { text: "Осуществление помилования", target: "president" },
@@ -193,7 +193,7 @@ function updateGameScore() {
     if (sc) sc.textContent = game.score;
 }
 
-/* --- ЗАДАНИЕ №23 (Фича 2 - Тренажер) --- */
+/* --- ЗАДАНИЕ №23 --- */
 const TASKS_23 = [
     {
         question: "РФ — социальное государство",
@@ -220,7 +220,7 @@ const TASKS_23 = [
         options: [
             { id: 1, text: "Глава государства (Президент) избирается сроком на 6 лет", correct: true },
             { id: 2, text: "Государственная Дума избирается сроком на 5 лет", correct: true },
-            { id: 3, text: "Единственным источником власти является многонациональный народ", correct: false }, // Это демократия
+            { id: 3, text: "Единственным источником власти является многонациональный народ", correct: false },
             { id: 4, text: "Высшим непосредственным выражением власти народа являются выборы", correct: true },
             { id: 5, text: "Осуществление правосудия только судом", correct: false }
         ]
@@ -251,8 +251,6 @@ function renderTask23() {
     $('#task23Question').textContent = task.question;
     const container = $('#task23Options');
     container.innerHTML = '';
-
-    // Перемешаем опции для интереса
     const shuffled = [...task.options].sort(() => Math.random() - 0.5);
 
     shuffled.forEach(opt => {
@@ -271,7 +269,6 @@ function renderTask23() {
 }
 
 function toggleOption23(el, id) {
-    // Если уже проверено, не даем менять
     if ($('#nextTask23Btn').style.display === 'inline-block') return;
 
     if (game23.selectedIds.has(id)) {
@@ -283,14 +280,12 @@ function toggleOption23(el, id) {
             el.classList.add('selected');
         }
     }
-
     $('#checkTask23Btn').disabled = game23.selectedIds.size !== 3;
 }
 
 function checkTask23() {
     const task = TASKS_23[game23.currentTaskIndex];
     const correctIds = new Set(task.options.filter(o => o.correct).map(o => o.id));
-
     let errors = 0;
 
     $$('.task23-option').forEach(el => {
@@ -304,7 +299,6 @@ function checkTask23() {
             el.classList.add('wrong');
             errors++;
         } else if (!isSelected && isCorrect) {
-            // Показать, что нужно было выбрать
             el.style.border = "2px dashed #22c55e";
         }
     });
@@ -396,9 +390,7 @@ function initSearchHistory() {
         }
     });
 
-    // Изменение: Добавлен слушатель input для живого поиска
     const debouncedSearch = debounce((q) => {
-        // Если поле пустое, можем показать историю
         if (!q && state.searchHistory.length > 0) {
             renderSearchHistory();
             container.hidden = false;
@@ -406,7 +398,7 @@ function initSearchHistory() {
             container.hidden = true;
             filterArticles(q);
         }
-    }, 300); // 300мс задержка
+    }, 300);
 
     input.addEventListener('input', (e) => {
         debouncedSearch(e.target.value);
@@ -529,6 +521,7 @@ function toggleTheme() {
     applyTheme();
 }
 
+/* --- SCROLL & SPY LOGIC --- */
 function updateScrollState() {
     const scrollTop = window.scrollY;
     const bar = $('#scrollProgress .bar');
@@ -551,6 +544,52 @@ function updateScrollState() {
             state.landingPosition = null;
         }
     }
+}
+
+// НОВОЕ: Подсветка активной главы (Spy Scroll)
+function initSpyScroll() {
+    const toc = $('#toc');
+    const checkActiveChapter = debounce(() => {
+        if (!toc) return;
+        // Находим все карточки статей
+        const cards = $$('.card');
+        if (cards.length === 0) return;
+
+        // Ищем карточку, которая ближе всего к верху экрана (но не ушла совсем)
+        // Для этого ищем первую карточку, чей низ ниже отступа хедера
+        const headerOffset = 100;
+        let activeCard = null;
+        
+        for (let card of cards) {
+            const rect = card.getBoundingClientRect();
+            if (rect.bottom > headerOffset) {
+                activeCard = card;
+                break;
+            }
+        }
+
+        if (!activeCard) return;
+
+        const articleId = activeCard.dataset.articleId;
+        const article = state.articles.find(a => a.id === articleId);
+
+        if (article) {
+            // Убираем активный класс со всех глав
+            $$('.toc-chapter').forEach(el => el.classList.remove('active'));
+            
+            // Ищем главу в TOC
+            const chapters = $$('.toc-chapter');
+            // Проходимся и ищем текст
+            chapters.forEach(ch => {
+                const titleSpan = ch.querySelector('.toc-chapter-header span:first-child');
+                if (titleSpan && titleSpan.textContent === article.chapterTitle) {
+                    ch.classList.add('active');
+                }
+            });
+        }
+    }, 100); // Проверяем каждые 100мс при скролле
+
+    window.addEventListener('scroll', checkActiveChapter);
 }
 
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -798,7 +837,6 @@ function toggleSpeech(text, btn) {
     window.speechSynthesis.speak(utterance);
 }
 
-/* --- КАРТА (Логика) --- */
 function initMap() {
     safeAddListener('#closeMap', 'click', () => $('#mapDialog').close());
     const title = $('#mapRegionTitle');
@@ -846,8 +884,7 @@ async function loadChapters() {
             'chapters/chapter4.html', 'chapters/chapter5.html', 'chapters/chapter6.html',
             'chapters/chapter7.html', 'chapters/chapter8.html', 'chapters/chapter9.html'
         ];
-
-        // Изменение: Используем allSettled для устойчивости к ошибкам загрузки одного файла
+        
         const results = await Promise.allSettled(files.map(f => fetch(f).then(r => {
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             return r.text();
@@ -871,7 +908,6 @@ async function loadChapters() {
                 });
             } else {
                 console.error(`Ошибка загрузки главы ${index + 1}:`, res.reason);
-                // Можно добавить заглушку, что глава временно недоступна
             }
         });
 
@@ -882,7 +918,7 @@ async function loadChapters() {
         } else if (!cachedData) {
             throw new Error("Не удалось загрузить ни одной главы.");
         }
-
+        
         if (container) container.classList.remove('loading');
         updateScrollState();
     } catch (e) {
@@ -956,13 +992,57 @@ function initEvents() {
     });
 }
 
+// НОВОЕ: Регистрация SW и обработка обновлений
+function initServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        // Показываем уведомление
+                        const toast = $('#updateNotification');
+                        const btn = $('#reloadBtn');
+                        if (toast && btn) {
+                            toast.hidden = false;
+                            btn.onclick = () => {
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            };
+                        }
+                    }
+                });
+            });
+        });
+
+        // Слушаем, когда SW обновился и стал активным
+        let refreshing;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            window.location.reload();
+            refreshing = true;
+        });
+    }
+}
+
 function boot() {
     applyTheme(true);
     const teacherMode = localStorage.getItem(LS.TEACHER) === '1'; setTeacherMode(teacherMode);
     const markersMode = localStorage.getItem(LS.MARKERS) === '1'; state.markersMode = markersMode;
     const mBtn = $('#markersBtn'); if (mBtn) mBtn.setAttribute('aria-pressed', markersMode ? 'true' : 'false');
 
-    loadFavorites(); initFontSettings(); initSearchHistory(); initTimer(); initGame(); initGame23(); initDictionary(); initMap(); initMobileNav(); initEvents(); loadChapters();
+    loadFavorites(); 
+    initFontSettings(); 
+    initSearchHistory(); 
+    initTimer(); 
+    initGame(); 
+    initGame23(); 
+    initDictionary(); 
+    initMap(); 
+    initMobileNav(); 
+    initEvents();
+    initSpyScroll(); // Запуск слежения за главами
+    initServiceWorker(); // Запуск PWA логики
+    loadChapters();
 }
 
 document.addEventListener('DOMContentLoaded', boot);

@@ -379,6 +379,13 @@ body {
     background: rgba(255, 255, 255, 0.03);
 }
 
+/* АКТИВНАЯ ГЛАВА (SpyScroll) */
+.toc-chapter.active .toc-chapter-header {
+    color: var(--accent);
+    background: rgba(37, 99, 235, 0.1);
+    border-left: 3px solid var(--accent);
+}
+
 .toc-toggle-icon {
     transition: transform 0.2s;
     font-size: 12px;
@@ -463,6 +470,15 @@ body {
     box-shadow: var(--shadow);
     padding: 20px;
     scroll-margin-top: 90px;
+    
+    /* АНИМАЦИЯ ПОЯВЛЕНИЯ */
+    animation: fadeIn 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .card.highlight {
@@ -795,6 +811,43 @@ mark {
     visibility: visible;
     opacity: 1;
     bottom: 50px;
+}
+
+/* УВЕДОМЛЕНИЕ ОБ ОБНОВЛЕНИИ (New) */
+.toast-update {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: var(--card);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: slideUp 0.3s ease-out;
+}
+
+.toast-update button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.toast-update button:hover {
+    opacity: 0.9;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 /* Модальные окна */
@@ -1347,7 +1400,8 @@ dialog::backdrop {
     #dictionaryDialog,
     .mobile-nav,
     #mapDialog,
-    #game23Dialog {
+    #game23Dialog,
+    .toast-update {
         display: none !important;
     }
 
@@ -1387,6 +1441,8 @@ dialog::backdrop {
         color: black;
         break-inside: avoid;
         padding: 10px 0;
+        animation: none !important;
+        opacity: 1 !important;
     }
 
     .card .title {

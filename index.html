@@ -94,6 +94,12 @@
   <button id="btn-return" class="btn-return" aria-label="Вернуться назад">↩ Вернуться назад</button>
 
   <div id="toast">Ссылка скопирована!</div>
+  
+  <div id="updateNotification" class="toast-update" hidden>
+    <span>Доступна новая версия приложения!</span>
+    <button id="reloadBtn">Обновить</button>
+  </div>
+
   <div id="tooltip" role="tooltip"></div>
 
   <dialog id="mapDialog" class="large-dialog">
@@ -244,25 +250,6 @@
   </template>
 
   <script src="app.js" defer></script>
-  
-  <script>
-    if ('serviceWorker' in navigator) {
-      // 1. Находим все регистрации и удаляем их
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        if(registrations.length) {
-          for(let registration of registrations) {
-            console.log('Unregistering SW:', registration);
-            registration.unregister();
-          }
-          // 2. Принудительная перезагрузка, чтобы сбросить кэш index.html
-          if (!sessionStorage.getItem('forceReload')) {
-             sessionStorage.setItem('forceReload', 'true');
-             window.location.reload(true);
-          }
-        }
-      });
-    }
-  </script>
 </body>
 
 </html>

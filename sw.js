@@ -1,4 +1,4 @@
-const CACHE_NAME = 'prepmate-v4-final';
+const CACHE_NAME = 'prepmate-v5-pro'; // Увеличил версию
 const urlsToCache = [
   './',
   './index.html',
@@ -19,14 +19,14 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting(); // Немедленная активация
+  // Убрал self.skipWaiting() для безопасного обновления
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim()); // Немедленный захват клиентов
+  event.waitUntil(self.clients.claim());
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
       keys.map(key => {
@@ -40,4 +40,11 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
+});
+
+// Слушаем команду от страницы на обновление
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
