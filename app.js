@@ -716,6 +716,17 @@ function renderArticles(list = state.articles) {
         const audioBtn = $('.btn-audio', node);
         audioBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSpeech(a.bodyHTML.replace(/<[^>]+>/g, ' '), audioBtn); });
 
+        // НОВОЕ: Кнопка Share
+        const shareBtn = $('.btn-share', node);
+        shareBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            shareArticle({
+                title: a.title,
+                text: a.bodyHTML.replace(/<[^>]+>/g, ' ').substring(0, 100) + '...',
+                url: window.location.href.split('#')[0] + '#' + a.id
+            });
+        });
+
         const link = $('.deeplink', node);
         link.href = `#${a.id}`;
         link.addEventListener('click', e => {
@@ -737,6 +748,16 @@ function renderArticles(list = state.articles) {
     });
 
     initDynamicEvents(container);
+}
+
+// Функция шаринга
+function shareArticle(data) {
+    if (navigator.share) {
+        navigator.share(data).catch(console.error);
+    } else {
+        // Fallback если нет поддержки
+        navigator.clipboard.writeText(data.url).then(showToast);
+    }
 }
 
 function initDynamicEvents(container) {
@@ -951,6 +972,18 @@ function initEvents() {
     safeAddListener('#closeDialog', 'click', () => $('#articleDialog').close());
     safeAddListener('#toggleExplanations', 'change', e => setTeacherMode(e.target.checked));
 
+    // УЛУЧШЕНИЕ: Закрытие диалогов при клике на фон
+    $$('dialog').forEach(dlg => {
+        dlg.addEventListener('click', (e) => {
+            const rect = dlg.getBoundingClientRect();
+            // Проверяем, был ли клик за пределами прямоугольника окна
+            if (e.clientX < rect.left || e.clientX > rect.right || 
+                e.clientY < rect.top || e.clientY > rect.bottom) {
+                dlg.close();
+            }
+        });
+    });
+
     const searchInput = $('#searchInput');
     const searchBtn = $('#searchTriggerBtn');
     if (searchInput) searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(searchInput.value); });
@@ -987,7 +1020,6 @@ function initEvents() {
 // НОВОЕ: Регистрация SW с правильной логикой обновления
 function initServiceWorker() {
     if ('serviceWorker' in navigator) {
-        // Перезагрузка при смене контроллера (когда новый SW вступил в силу)
         let refreshing;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (refreshing) return;
@@ -995,12 +1027,8 @@ function initServiceWorker() {
             refreshing = true;
         });
 
-        // ВАЖНО: Убрал Date.now(), чтобы адрес был стабильным и не вызывал циклов.
         navigator.serviceWorker.register('./sw.js').then(reg => {
-            
-            // ВАЖНО: Принудительная проверка обновлений при каждом заходе
-            // Решает проблему "ничего не изменилось"
-            reg.update();
+            reg.update(); // Принудительная проверка обновлений
 
             const showUpdateUI = (worker) => {
                 const toast = $('#updateNotification');
@@ -1015,13 +1043,11 @@ function initServiceWorker() {
                 }
             };
 
-            // Если обновление уже ждет (waiting)
             if (reg.waiting) {
                 showUpdateUI(reg.waiting);
                 return;
             }
 
-            // Слушаем появление новых версий
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
@@ -1051,7 +1077,7 @@ function boot() {
     initMobileNav(); 
     initEvents();
     initSpyScroll();
-    initServiceWorker(); // Запуск исправленной логики
+    initServiceWorker(); 
     loadChapters();
 }
 

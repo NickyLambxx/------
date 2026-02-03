@@ -23,6 +23,18 @@
     --font-size: 16px;
     --line-height: 1.6;
     --nav-height: 60px;
+
+    /* Цвета карты (Темная тема - приглушенные) */
+    --map-fe: #2c5282;   /* Дальний восток */
+    --map-sib: #553c9a;  /* Сибирь */
+    --map-ural: #97266d; /* Урал */
+    --map-nw: #975a16;   /* Северо-Запад */
+    --map-cen: #276749;  /* Центр */
+    --map-vol: #dd6b20;  /* Поволжье */
+    --map-south: #2b6cb0;/* Юг */
+    --map-kav: #9b2c2c;  /* Кавказ */
+    --map-stroke: #1a202c;
+    --map-hover-stroke: #fff;
 }
 
 :root.light {
@@ -44,6 +56,18 @@
     --mark-joint-text: #166534;
 
     --highlight-bg: #fef08a;
+
+    /* Цвета карты (Светлая тема - яркие пастельные) */
+    --map-fe: #90CDF4;
+    --map-sib: #B794F4;
+    --map-ural: #F687B3;
+    --map-nw: #F6E05E;
+    --map-cen: #68D391;
+    --map-vol: #F6AD55;
+    --map-south: #63B3ED;
+    --map-kav: #FC8181;
+    --map-stroke: #fff;
+    --map-hover-stroke: #2d3748;
 }
 
 * {
@@ -710,16 +734,22 @@ mark {
 }
 
 .btn-fav,
-.btn-audio {
+.btn-audio,
+.btn-share {
     font-size: 22px;
     color: var(--muted);
     transition: transform 0.2s, color 0.2s;
 }
 
 .btn-fav:hover,
-.btn-audio:hover {
+.btn-audio:hover,
+.btn-share:hover {
     transform: scale(1.2);
     color: var(--fav-color);
+}
+
+.btn-share:hover {
+    color: var(--accent);
 }
 
 .btn-fav.active,
@@ -831,7 +861,6 @@ mark {
     animation: slideUp 0.3s ease-out;
 }
 
-/* ЭТО ВАЖНО: Если есть атрибут hidden, скрываем жестко */
 .toast-update[hidden] {
     display: none !important;
 }
@@ -867,6 +896,7 @@ dialog {
 dialog::backdrop {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(5px);
+    cursor: pointer; /* Показываем, что можно кликнуть для закрытия */
 }
 
 .large-dialog {
@@ -906,7 +936,7 @@ dialog::backdrop {
     cursor: pointer;
 }
 
-/* --- УЛУЧШЕННАЯ КАРТА РФ --- */
+/* --- УЛУЧШЕННАЯ КАРТА РФ (С CSS ПЕРЕМЕННЫМИ) --- */
 .map-wrapper {
     display: grid;
     grid-template-columns: 2.5fr 1fr;
@@ -919,7 +949,6 @@ dialog::backdrop {
     background: var(--bg);
     display: flex;
     flex-direction: column;
-    /* Текст над картой */
     align-items: center;
     justify-content: center;
     overflow: hidden;
@@ -927,7 +956,6 @@ dialog::backdrop {
     border-radius: 8px;
 }
 
-/* Стиль для новой инструкции */
 .map-instruction {
     margin-bottom: 15px;
     font-size: 20px;
@@ -945,50 +973,27 @@ dialog::backdrop {
 
 /* Общий стиль регионов */
 .region {
-    stroke: var(--card);
+    stroke: var(--map-stroke);
     stroke-width: 2;
     transition: all 0.3s ease;
     cursor: pointer;
     opacity: 0.9;
 }
 
-/* Цвета округов - пастельные */
-#reg-fe {
-    fill: #90CDF4;
-}
-
-#reg-sib {
-    fill: #B794F4;
-}
-
-#reg-ural {
-    fill: #F687B3;
-}
-
-#reg-nw {
-    fill: #F6E05E;
-}
-
-#reg-cen {
-    fill: #68D391;
-}
-
-#reg-vol {
-    fill: #F6AD55;
-}
-
-#reg-south {
-    fill: #63B3ED;
-}
-
-#reg-kav {
-    fill: #FC8181;
-}
+/* Использование переменных для цветов */
+#reg-fe { fill: var(--map-fe); }
+#reg-sib { fill: var(--map-sib); }
+#reg-ural { fill: var(--map-ural); }
+#reg-nw { fill: var(--map-nw); }
+#reg-cen { fill: var(--map-cen); }
+#reg-vol { fill: var(--map-vol); }
+#reg-south { fill: var(--map-south); }
+#reg-kav { fill: var(--map-kav); }
 
 .region:hover {
     opacity: 1;
     transform: scale(1.015);
-    stroke: #fff;
+    stroke: var(--map-hover-stroke);
     z-index: 10;
     filter: brightness(1.1);
 }
