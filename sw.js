@@ -1,4 +1,4 @@
-const CACHE_NAME = 'prepmate-v6-force-update'; // Новая версия
+const CACHE_NAME = 'prepmate-v7-final-fix'; // Версия 7, чтобы точно обновилось
 const urlsToCache = [
   './',
   './index.html',

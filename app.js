@@ -984,10 +984,10 @@ function initEvents() {
     });
 }
 
-// НОВОЕ: Регистрация SW с защитой от кэша
+// НОВОЕ: Регистрация SW с правильной логикой обновления
 function initServiceWorker() {
     if ('serviceWorker' in navigator) {
-        // Перезагрузка при смене контроллера
+        // Перезагрузка при смене контроллера (когда новый SW вступил в силу)
         let refreshing;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (refreshing) return;
@@ -995,19 +995,21 @@ function initServiceWorker() {
             refreshing = true;
         });
 
-        // ДОБАВИЛ: ?v=${Date.now()} чтобы обойти кэш браузера для самого sw.js
-        navigator.serviceWorker.register(`./sw.js?v=${Date.now()}`).then(reg => {
+        // ВАЖНО: Убрал Date.now(), чтобы адрес был стабильным и не вызывал циклов.
+        navigator.serviceWorker.register('./sw.js').then(reg => {
             
+            // ВАЖНО: Принудительная проверка обновлений при каждом заходе
+            // Решает проблему "ничего не изменилось"
+            reg.update();
+
             const showUpdateUI = (worker) => {
                 const toast = $('#updateNotification');
                 const btn = $('#reloadBtn');
                 if (toast && btn) {
-                    toast.hidden = false; // Показываем тост
-                    
+                    toast.hidden = false;
                     btn.onclick = () => {
                         btn.disabled = true;
                         btn.textContent = 'Обновление...';
-                        // Отправляем команду работнику
                         worker.postMessage({ type: 'SKIP_WAITING' });
                     };
                 }
@@ -1019,7 +1021,7 @@ function initServiceWorker() {
                 return;
             }
 
-            // Если обновление только качается
+            // Слушаем появление новых версий
             reg.addEventListener('updatefound', () => {
                 const newWorker = reg.installing;
                 newWorker.addEventListener('statechange', () => {
@@ -1049,7 +1051,7 @@ function boot() {
     initMobileNav(); 
     initEvents();
     initSpyScroll();
-    initServiceWorker(); // Запуск
+    initServiceWorker(); // Запуск исправленной логики
     loadChapters();
 }
 

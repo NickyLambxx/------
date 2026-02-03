@@ -831,6 +831,7 @@ mark {
     animation: slideUp 0.3s ease-out;
 }
 
+/* ЭТО ВАЖНО: Если есть атрибут hidden, скрываем жестко */
 .toast-update[hidden] {
     display: none !important;
 }
