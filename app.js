@@ -7,6 +7,19 @@ function safeAddListener(selector, event, handler) {
     if (el) el.addEventListener(event, handler);
 }
 
+// Утилита для задержки выполнения (Debounce)
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 const state = {
     teacherMode: false,
     markersMode: false,
@@ -382,7 +395,23 @@ function initSearchHistory() {
             container.hidden = false;
         }
     });
-    input.addEventListener('input', () => { container.hidden = true; });
+
+    // Изменение: Добавлен слушатель input для живого поиска
+    const debouncedSearch = debounce((q) => {
+        // Если поле пустое, можем показать историю
+        if (!q && state.searchHistory.length > 0) {
+            renderSearchHistory();
+            container.hidden = false;
+        } else {
+            container.hidden = true;
+            filterArticles(q);
+        }
+    }, 300); // 300мс задержка
+
+    input.addEventListener('input', (e) => {
+        debouncedSearch(e.target.value);
+    });
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-container')) container.hidden = true;
     });
@@ -603,6 +632,11 @@ function renderArticles(list = state.articles) {
         }
     }
 
+    if (displayList.length === 0 && state.activeSearchQuery) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">Ничего не найдено.</div>';
+        return;
+    }
+
     const template = $('#articleCardTmpl');
 
     displayList.forEach(a => {
@@ -812,31 +846,48 @@ async function loadChapters() {
             'chapters/chapter4.html', 'chapters/chapter5.html', 'chapters/chapter6.html',
             'chapters/chapter7.html', 'chapters/chapter8.html', 'chapters/chapter9.html'
         ];
-        const responses = await Promise.all(files.map(f => fetch(f).then(r => r.text())));
-        const parser = new DOMParser();
-        let newArticles = [];
 
-        responses.forEach((html, index) => {
-            const doc = parser.parseFromString(html, 'text/html');
-            const chapterTitle = doc.querySelector('h2')?.textContent?.trim() || `Глава ${index + 1}`;
-            doc.querySelectorAll('article.interactive-article, article').forEach(artNode => {
-                const id = artNode.id || `article-${index}-${Math.random().toString(36).slice(2, 7)}`;
-                const title = artNode.getAttribute('data-title') || artNode.querySelector('h3')?.textContent?.trim() || 'Статья';
-                const bodyClone = artNode.cloneNode(true);
-                bodyClone.querySelector('h3')?.remove();
-                const explain = artNode.getAttribute('data-comment') || '';
-                newArticles.push({ id, title, bodyHTML: bodyClone.innerHTML, explainHTML: explain, chapterTitle });
-            });
+        // Изменение: Используем allSettled для устойчивости к ошибкам загрузки одного файла
+        const results = await Promise.allSettled(files.map(f => fetch(f).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.text();
+        })));
+
+        let newArticles = [];
+        const parser = new DOMParser();
+
+        results.forEach((res, index) => {
+            if (res.status === 'fulfilled') {
+                const html = res.value;
+                const doc = parser.parseFromString(html, 'text/html');
+                const chapterTitle = doc.querySelector('h2')?.textContent?.trim() || `Глава ${index + 1}`;
+                doc.querySelectorAll('article.interactive-article, article').forEach(artNode => {
+                    const id = artNode.id || `article-${index}-${Math.random().toString(36).slice(2, 7)}`;
+                    const title = artNode.getAttribute('data-title') || artNode.querySelector('h3')?.textContent?.trim() || 'Статья';
+                    const bodyClone = artNode.cloneNode(true);
+                    bodyClone.querySelector('h3')?.remove();
+                    const explain = artNode.getAttribute('data-comment') || '';
+                    newArticles.push({ id, title, bodyHTML: bodyClone.innerHTML, explainHTML: explain, chapterTitle });
+                });
+            } else {
+                console.error(`Ошибка загрузки главы ${index + 1}:`, res.reason);
+                // Можно добавить заглушку, что глава временно недоступна
+            }
         });
 
-        state.articles = newArticles;
-        try { localStorage.setItem(LS.CACHE_CHAPTERS, JSON.stringify(newArticles)); } catch (e) { }
-        renderArticles(); buildTOC(); applyFontSettings();
+        if (newArticles.length > 0) {
+            state.articles = newArticles;
+            try { localStorage.setItem(LS.CACHE_CHAPTERS, JSON.stringify(newArticles)); } catch (e) { }
+            renderArticles(); buildTOC(); applyFontSettings();
+        } else if (!cachedData) {
+            throw new Error("Не удалось загрузить ни одной главы.");
+        }
+
         if (container) container.classList.remove('loading');
         updateScrollState();
     } catch (e) {
         if (!state.articles.length && container) {
-            container.innerHTML = `<div class="error" style="color:red;padding:20px;border:1px solid red">Ошибка загрузки: ${e.message}</div>`;
+            container.innerHTML = `<div class="error" style="color:red;padding:20px;border:1px solid red">Ошибка загрузки: ${e.message}. Проверьте соединение.</div>`;
         }
     }
 }
