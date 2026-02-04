@@ -26,6 +26,7 @@ const state = {
     showFavoritesOnly: false,
     articles: [],
     favorites: new Set(),
+    notes: {}, // NEW: Хранение заметок
     returnPosition: null,
     landingPosition: null,
     isJumping: false,
@@ -42,6 +43,7 @@ const LS = {
     TEACHER: 'ic-teacher-mode',
     MARKERS: 'ic-markers-mode',
     FAVORITES: 'ic-favorites',
+    NOTES: 'ic-user-notes', // NEW
     FONT: 'ic-font-settings',
     HIGHSCORE: 'ic-game-highscore',
     SEARCH: 'ic-search-history',
@@ -316,6 +318,60 @@ function checkTask23() {
     $('#nextTask23Btn').style.display = 'inline-block';
 }
 
+/* --- FLASHCARDS (NEW) --- */
+const flashcards = {
+    terms: [],
+    index: 0
+};
+
+function initFlashcards() {
+    safeAddListener('#flashcardsBtn', 'click', () => {
+        flashcards.terms = Object.keys(DICTIONARY).sort(() => Math.random() - 0.5);
+        flashcards.index = 0;
+        renderFlashcard();
+        $('#flashcardsDialog').showModal();
+    });
+
+    safeAddListener('#closeFlashcards', 'click', () => $('#flashcardsDialog').close());
+    
+    safeAddListener('#fcNext', 'click', () => {
+        if (flashcards.index < flashcards.terms.length - 1) {
+            $('#flashcard').classList.remove('flipped');
+            setTimeout(() => {
+                flashcards.index++;
+                renderFlashcard();
+            }, 300);
+        }
+    });
+
+    safeAddListener('#fcPrev', 'click', () => {
+        if (flashcards.index > 0) {
+            $('#flashcard').classList.remove('flipped');
+            setTimeout(() => {
+                flashcards.index--;
+                renderFlashcard();
+            }, 300);
+        }
+    });
+
+    safeAddListener('#flashcard', 'click', () => {
+        $('#flashcard').classList.toggle('flipped');
+    });
+}
+
+function renderFlashcard() {
+    if (flashcards.terms.length === 0) return;
+    const term = flashcards.terms[flashcards.index];
+    
+    $('#fcTerm').textContent = term.charAt(0).toUpperCase() + term.slice(1);
+    $('#fcDef').textContent = DICTIONARY[term];
+    $('#fcCounter').textContent = `${flashcards.index + 1} / ${flashcards.terms.length}`;
+
+    // Блокировка кнопок
+    $('#fcPrev').disabled = flashcards.index === 0;
+    $('#fcNext').disabled = flashcards.index === flashcards.terms.length - 1;
+}
+
 /* --- ШРИФТЫ --- */
 function initFontSettings() {
     const saved = JSON.parse(localStorage.getItem(LS.FONT));
@@ -502,6 +558,18 @@ function setFavFilterMode() {
     if (search) search.value = '';
     state.activeSearchQuery = '';
     renderArticles();
+}
+
+/* --- ЗАМЕТКИ (NOTES) --- */
+function loadNotes() {
+    const stored = localStorage.getItem(LS.NOTES);
+    if (stored) state.notes = JSON.parse(stored);
+}
+
+function saveNote(id, text) {
+    if (!text.trim()) delete state.notes[id];
+    else state.notes[id] = text;
+    localStorage.setItem(LS.NOTES, JSON.stringify(state.notes));
 }
 
 function applyTheme(init = false) {
@@ -716,15 +784,11 @@ function renderArticles(list = state.articles) {
         const audioBtn = $('.btn-audio', node);
         audioBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSpeech(a.bodyHTML.replace(/<[^>]+>/g, ' '), audioBtn); });
 
-        // НОВОЕ: Кнопка Share
+        // SHARE (Цитата)
         const shareBtn = $('.btn-share', node);
         shareBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            shareArticle({
-                title: a.title,
-                text: a.bodyHTML.replace(/<[^>]+>/g, ' ').substring(0, 100) + '...',
-                url: window.location.href.split('#')[0] + '#' + a.id
-            });
+            openShareDialog(a.title, a.bodyHTML.replace(/<[^>]+>/g, ' '));
         });
 
         const link = $('.deeplink', node);
@@ -734,6 +798,30 @@ function renderArticles(list = state.articles) {
             history.replaceState(null, '', `#${a.id}`);
             navigator.clipboard.writeText(window.location.href).then(showToast);
         });
+
+        // NOTE Logic
+        const noteBtn = $('.btn-note', node);
+        const noteContainer = $('.note-container', node);
+        const noteArea = $('.note-area', node);
+        
+        // Загрузка заметки
+        if (state.notes[a.id]) {
+            noteArea.value = state.notes[a.id];
+            noteContainer.hidden = false;
+            noteBtn.classList.add('active');
+        }
+
+        noteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            noteContainer.hidden = !noteContainer.hidden;
+            if (!noteContainer.hidden) noteArea.focus();
+        });
+
+        noteArea.addEventListener('input', debounce((e) => {
+            saveNote(a.id, e.target.value);
+            if (e.target.value.trim()) noteBtn.classList.add('active');
+            else noteBtn.classList.remove('active');
+        }, 500));
 
         if (a.title.includes('Статья 65')) {
             const mapBtn = document.createElement('button');
@@ -750,14 +838,100 @@ function renderArticles(list = state.articles) {
     initDynamicEvents(container);
 }
 
-// Функция шаринга
-function shareArticle(data) {
-    if (navigator.share) {
-        navigator.share(data).catch(console.error);
-    } else {
-        // Fallback если нет поддержки
-        navigator.clipboard.writeText(data.url).then(showToast);
+// --- GENERATE QUOTE IMAGE (NEW) ---
+function openShareDialog(title, text) {
+    const dlg = $('#shareDialog');
+    const canvas = $('#shareCanvas');
+    if (!dlg || !canvas) return;
+
+    generateQuoteImage(canvas, title, text);
+    dlg.showModal();
+
+    safeAddListener('#closeShare', 'click', () => dlg.close());
+    
+    // Download
+    $('#downloadImgBtn').onclick = () => {
+        const link = document.createElement('a');
+        link.download = `constitution-${Date.now()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    };
+
+    // Native Share
+    $('#shareNativeBtn').onclick = () => {
+        canvas.toBlob(blob => {
+            const file = new File([blob], "quote.png", { type: "image/png" });
+            if (navigator.share) {
+                navigator.share({
+                    files: [file],
+                    title: 'Цитата из Конституции',
+                    text: `${title}\n${text.substring(0, 50)}...`
+                }).catch(console.error);
+            } else {
+                showToast("Ваш браузер не поддерживает отправку картинок");
+            }
+        });
+    };
+}
+
+function generateQuoteImage(canvas, title, text) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Background (Gradient Dark)
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#12141a');
+    grad.addColorStop(1, '#1e2330');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Border
+    ctx.strokeStyle = '#2563eb';
+    ctx.lineWidth = 20;
+    ctx.strokeRect(40, 40, w - 80, h - 80);
+
+    // Title
+    ctx.fillStyle = '#6ea8fe';
+    ctx.font = 'bold 80px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, w / 2, 200);
+
+    // Body Text with wrapping
+    ctx.fillStyle = '#e8ebf0';
+    ctx.font = '50px sans-serif';
+    ctx.textAlign = 'center'; // Center align text
+    
+    wrapText(ctx, text, w / 2, 350, w - 200, 80);
+
+    // Footer
+    ctx.fillStyle = '#9aa3af';
+    ctx.font = 'italic 40px sans-serif';
+    ctx.fillText('PrepMate — Интерактивная Конституция', w / 2, h - 100);
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let testLine = '';
+    
+    // Ограничим длину текста, чтобы влезло
+    if (words.length > 80) text = words.slice(0, 80).join(' ') + '...';
+
+    for(let n = 0; n < words.length; n++) {
+        testLine = line + words[n] + ' ';
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+        if (testWidth > maxWidth && n > 0) {
+            ctx.fillText(line, x, y);
+            line = words[n] + ' ';
+            y += lineHeight;
+        }
+        else {
+            line = testLine;
+        }
     }
+    ctx.fillText(line, x, y);
 }
 
 function initDynamicEvents(container) {
@@ -801,8 +975,9 @@ function moveTooltip(e) {
     if (y + 100 > window.innerHeight) tooltip.style.top = (y - 100) + 'px';
 }
 
-function showToast() {
+function showToast(msg = "Ссылка скопирована!") {
     const toast = $('#toast'); if (!toast) return;
+    toast.textContent = msg;
     toast.className = "show";
     setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
 }
@@ -995,12 +1170,12 @@ function initEvents() {
     const content = $('#content');
     if (content) {
         content.addEventListener('click', e => {
-            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button')) return;
+            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button') || e.target.closest('.note-area')) return;
             const card = e.target.closest('.card');
             if (card && e.altKey) openDialogById(card.dataset.articleId);
         });
         content.addEventListener('dblclick', e => {
-            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button')) return;
+            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button') || e.target.closest('.note-area')) return;
             const card = e.target.closest('.card');
             if (card) openDialogById(card.dataset.articleId);
         });
@@ -1013,7 +1188,7 @@ function initEvents() {
     });
     window.addEventListener('scroll', updateScrollState);
     window.addEventListener('keydown', e => {
-        if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); $('#searchInput').focus(); }
+        if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') { e.preventDefault(); $('#searchInput').focus(); }
     });
 }
 
@@ -1067,11 +1242,13 @@ function boot() {
     const mBtn = $('#markersBtn'); if (mBtn) mBtn.setAttribute('aria-pressed', markersMode ? 'true' : 'false');
 
     loadFavorites(); 
+    loadNotes(); // NEW
     initFontSettings(); 
     initSearchHistory(); 
     initTimer(); 
     initGame(); 
     initGame23(); 
+    initFlashcards(); // NEW
     initDictionary(); 
     initMap(); 
     initMobileNav(); 

@@ -29,6 +29,7 @@
     </div>
 
     <div class="header-tools">
+      <button id="flashcardsBtn" class="btn" aria-label="Карточки" title="Учить термины (Flashcards)">🗂️</button>
       <button id="dictionaryBtn" class="btn" aria-label="Словарь" title="Словарь терминов">📖</button>
       <button id="game23Btn" class="btn" aria-label="Задание 23" title="ЕГЭ Задание №23">📋</button>
       <button id="gameBtn" class="btn" aria-label="Тренажер полномочий" title="Игра: Кто за что отвечает?">🎮</button>
@@ -152,6 +153,45 @@
     </div>
   </dialog>
 
+  <dialog id="flashcardsDialog" class="large-dialog">
+    <div class="game-header">
+      <h3>Карточки терминов</h3>
+      <button id="closeFlashcards" class="btn-ghost">✕</button>
+    </div>
+    <div class="flashcard-wrapper">
+        <div class="flashcard-container">
+            <div id="flashcard" class="flashcard">
+                <div class="front">
+                    <div id="fcTerm">Термин</div>
+                    <div class="hint">Нажмите, чтобы перевернуть</div>
+                </div>
+                <div class="back">
+                    <div id="fcDef">Определение</div>
+                </div>
+            </div>
+        </div>
+        <div class="flashcard-controls">
+            <button id="fcPrev" class="btn">← Назад</button>
+            <span id="fcCounter">1 / 10</span>
+            <button id="fcNext" class="btn">Вперед →</button>
+        </div>
+    </div>
+  </dialog>
+
+  <dialog id="shareDialog" class="mini-dialog" style="width: 90%; max-width: 400px;">
+    <header class="dialog-header">
+        <h3>Поделиться цитатой</h3>
+        <button id="closeShare" class="btn btn-ghost">✕</button>
+    </header>
+    <div style="padding: 20px; text-align: center;">
+        <canvas id="shareCanvas" width="1080" height="1920" style="width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;"></canvas>
+        <div style="display: grid; gap: 10px;">
+            <button id="downloadImgBtn" class="btn btn-primary">⬇ Скачать картинку</button>
+            <button id="shareNativeBtn" class="btn">📤 Отправить</button>
+        </div>
+    </div>
+  </dialog>
+
   <dialog id="dictionaryDialog" class="large-dialog">
     <header class="dialog-header">
       <h3>Словарь терминов</h3>
@@ -236,13 +276,18 @@
           <h3 class="title"></h3>
         </div>
         <div class="meta">
-          <button class="btn-share btn-ghost" title="Поделиться">📤</button>
+          <button class="btn-note btn-ghost" title="Моя заметка">📝</button> <button class="btn-share btn-ghost" title="Создать цитату">📤</button>
           <button class="btn-audio btn-ghost" title="Прослушать статью">🔊</button>
           <button class="btn-fav btn-ghost" title="Добавить в избранное">☆</button>
           <a class="deeplink btn btn-ghost" title="Скопировать ссылку на статью">🔗</a>
         </div>
       </header>
       <div class="body"></div>
+      
+      <div class="note-container" hidden>
+          <textarea class="note-area" placeholder="Ваша заметка (например: 'Выучить к четвергу' или 'Спросить у учителя')..."></textarea>
+      </div>
+
       <details class="explain">
         <summary>Пояснение</summary>
         <div class="explain-body"></div>

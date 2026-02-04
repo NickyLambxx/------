@@ -580,6 +580,106 @@ body {
     font-size: 0.95em;
 }
 
+/* --- ЗАМЕТКИ (NEW) --- */
+.note-container {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 241, 118, 0.05);
+    border: 1px dashed var(--muted);
+    border-radius: 8px;
+    animation: fadeIn 0.3s;
+}
+
+.note-area {
+    width: 100%;
+    min-height: 60px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95em;
+    resize: vertical;
+}
+
+.note-area:focus {
+    outline: none;
+}
+
+/* --- ФЛЕШ КАРТОЧКИ (NEW) --- */
+.flashcard-wrapper {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.flashcard-container {
+    perspective: 1000px;
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+}
+
+.flashcard {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    border-radius: 16px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.flashcard.flipped {
+    transform: rotateY(180deg);
+}
+
+.flashcard .front,
+.flashcard .back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--card);
+    border: 2px solid var(--border);
+}
+
+.flashcard .front {
+    color: var(--accent);
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.flashcard .back {
+    transform: rotateY(180deg);
+    color: var(--text);
+    font-size: 1.1em;
+    background: linear-gradient(135deg, rgba(37,99,235,0.05), rgba(124,58,237,0.05));
+    border-color: var(--accent);
+}
+
+.flashcard .hint {
+    margin-top: 20px;
+    font-size: 0.6em;
+    color: var(--muted);
+    font-weight: normal;
+}
+
+.flashcard-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
 /* Общее */
 .term {
     border-bottom: 1px dotted var(--accent);
@@ -735,7 +835,8 @@ mark {
 
 .btn-fav,
 .btn-audio,
-.btn-share {
+.btn-share,
+.btn-note {
     font-size: 22px;
     color: var(--muted);
     transition: transform 0.2s, color 0.2s;
@@ -743,13 +844,18 @@ mark {
 
 .btn-fav:hover,
 .btn-audio:hover,
-.btn-share:hover {
+.btn-share:hover,
+.btn-note:hover {
     transform: scale(1.2);
     color: var(--fav-color);
 }
 
 .btn-share:hover {
     color: var(--accent);
+}
+
+.btn-note:hover {
+    color: #fff176;
 }
 
 .btn-fav.active,
@@ -1411,6 +1517,8 @@ dialog::backdrop {
     .mobile-nav,
     #mapDialog,
     #game23Dialog,
+    #flashcardsDialog,
+    #shareDialog,
     .toast-update {
         display: none !important;
     }
