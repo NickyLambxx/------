@@ -10,6 +10,12 @@
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     --scroll-track: #1a1d26;
     --scroll-thumb: #3e4658;
+    --player-bg: #1a1d26;
+    
+    /* Шрифты */
+    --font-family-sans: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --font-family-serif: 'Georgia', 'Times New Roman', serif;
+    --current-font: var(--font-family-sans);
 
     --mark-fed-bg: rgba(220, 38, 38, 0.2);
     --mark-fed-text: #fca5a5;
@@ -23,6 +29,7 @@
     --font-size: 16px;
     --line-height: 1.6;
     --nav-height: 60px;
+    --player-height: 80px;
 
     /* Цвета карты (Темная тема - приглушенные) */
     --map-fe: #2c5282;   /* Дальний восток */
@@ -49,6 +56,7 @@
     --shadow: 0 6px 20px rgba(2, 6, 23, 0.08);
     --scroll-track: #e2e8f0;
     --scroll-thumb: #94a3b8;
+    --player-bg: #fff;
 
     --mark-fed-bg: #fee2e2;
     --mark-fed-text: #991b1b;
@@ -70,6 +78,11 @@
     --map-hover-stroke: #2d3748;
 }
 
+/* Режим засечек (Serif) */
+body.serif-mode {
+    --current-font: var(--font-family-serif);
+}
+
 * {
     box-sizing: border-box;
 }
@@ -81,8 +94,8 @@ html {
 body {
     margin: 0;
     padding-top: 80px;
-    padding-bottom: 0;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    padding-bottom: var(--player-height); /* Отступ для плеера */
+    font-family: var(--current-font);
     font-size: var(--font-size);
     line-height: var(--line-height);
     background: var(--bg);
@@ -92,7 +105,7 @@ body {
 
 @media (max-width: 768px) {
     body {
-        padding-bottom: var(--nav-height);
+        padding-bottom: calc(var(--nav-height) + var(--player-height));
     }
 }
 
@@ -498,7 +511,6 @@ body {
     /* АНИМАЦИЯ ПОЯВЛЕНИЯ */
     animation: fadeIn 0.4s ease-out forwards;
     opacity: 0;
-    transition: transform 0.2s ease-out; /* Для свайпа */
 }
 
 @keyframes fadeIn {
@@ -681,42 +693,314 @@ body {
     gap: 20px;
 }
 
-/* --- CONTEXT MENU (NEW) --- */
-.context-menu {
+/* --- ACTION SHEET (CONTEXT MENU) --- */
+.action-sheet {
     position: fixed;
-    z-index: 10000;
+    bottom: 0;
+    left: 0;
+    width: 100%;
     background: var(--card);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-    display: flex;
-    overflow: hidden;
-    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+    z-index: 9999;
+    padding-bottom: 20px; /* Safe area */
+    animation: slideUp 0.3s ease-out;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
 }
 
-.context-menu button {
-    background: transparent;
+.action-sheet-header {
+    padding: 15px;
+    text-align: center;
+    font-size: 0.9em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.action-sheet-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 10px;
+    gap: 10px;
+}
+
+.sheet-btn {
+    background: none;
     border: none;
     color: var(--text);
-    padding: 8px 12px;
     font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 15px;
+    border-radius: 12px;
     cursor: pointer;
-    border-right: 1px solid var(--border);
-    transition: background 0.2s;
 }
 
-.context-menu button:last-child {
-    border-right: none;
+.sheet-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--accent);
 }
 
-.context-menu button:hover {
+/* --- AUDIO PLAYER --- */
+.audio-player {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: var(--player-height);
+    background: var(--player-bg);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+    z-index: 6000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5px 20px;
+    animation: slideUp 0.3s;
+}
+
+@media (max-width: 768px) {
+    .audio-player {
+        bottom: var(--nav-height);
+    }
+}
+
+.player-info {
+    text-align: center;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 5px;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+
+.player-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.1s;
+}
+
+.player-btn:active {
+    transform: scale(0.9);
+}
+
+.player-btn.play {
+    font-size: 28px;
+    color: var(--accent);
+}
+
+.player-btn.rate {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--muted);
+    width: 40px;
+}
+
+.player-btn.close {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--muted);
+}
+
+.player-bar {
+    height: 3px;
     background: var(--accent);
-    color: #fff;
+    width: 0%; /* Анимируется через JS */
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: width 0.2s linear;
 }
 
-@keyframes popIn {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
+/* --- PWA BANNER --- */
+.install-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 8000;
+    animation: slideUp 0.5s ease-out;
+}
+
+@media (max-width: 768px) {
+    .install-banner {
+        bottom: 80px; /* Выше навигации */
+    }
+}
+
+.install-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.install-logo {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+}
+
+.install-text {
+    font-size: 14px;
+}
+
+.install-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* --- FONT SETTINGS (NEW) --- */
+.font-family-switch {
+    display: flex;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px;
+    border-radius: 8px;
+}
+
+.radio-label {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+
+.radio-label input {
+    position: absolute;
+    opacity: 0;
+}
+
+.radio-label span {
+    display: block;
+    text-align: center;
+    padding: 8px;
+    border-radius: 6px;
+    background: transparent;
+    transition: background 0.2s;
+    font-size: 14px;
+}
+
+.radio-label input:checked + span {
+    background: var(--accent);
+    color: white;
+}
+
+/* --- MAP ZOOM & LIST (NEW) --- */
+.map-zoom-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.map-zoom-controls button {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    background: var(--card);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.region-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 10px 10px 10px;
+}
+
+.region-list li {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+}
+
+.flag-placeholder {
+    width: 24px;
+    height: 16px;
+    background: linear-gradient(180deg, white 33%, blue 33%, blue 66%, red 66%);
+    display: inline-block;
+    border: 1px solid #ccc;
+    flex-shrink: 0;
+}
+
+/* --- FAV FOLDERS (NEW) --- */
+.fav-folders {
+    margin-bottom: 15px;
+    animation: fadeIn 0.3s;
+}
+
+.fav-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.folder-select {
+    flex-grow: 1;
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.btn-mini {
+    padding: 0 12px;
+    font-size: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.fav-folder-selector {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-folder-select {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 12px;
 }
 
 /* Общее */
@@ -1458,7 +1742,7 @@ dialog::backdrop {
 }
 
 @media print {
-    .header-tools, .sidebar, .btn-up, .btn-return, #scrollProgress, .meta, .toggle, .game-dialog, #fontSettingsDialog, #dictionaryDialog, .mobile-nav, #mapDialog, #game23Dialog, #flashcardsDialog, #shareDialog, .toast-update, .context-menu { display: none !important; }
+    .header-tools, .sidebar, .btn-up, .btn-return, #scrollProgress, .meta, .toggle, .game-dialog, #fontSettingsDialog, #dictionaryDialog, .mobile-nav, #mapDialog, #game23Dialog, #flashcardsDialog, #shareDialog, .toast-update, .action-sheet, .audio-player, .install-banner { display: none !important; }
     body { padding-top: 0; padding-bottom: 0; background: white; color: black; font-size: 12pt; }
     .layout { display: block; padding: 0; margin: 0; }
     .site-header { position: static; border-bottom: 2px solid black; box-shadow: none; height: auto; padding: 10px 0; }

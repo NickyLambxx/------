@@ -7,7 +7,6 @@ function safeAddListener(selector, event, handler) {
     if (el) el.addEventListener(event, handler);
 }
 
-// Утилита для задержки выполнения (Debounce)
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -26,6 +25,9 @@ const state = {
     showFavoritesOnly: false,
     articles: [],
     favorites: new Set(),
+    favFolders: ['General'], // NEW: Список папок
+    articleFolders: {}, // NEW: Map articleId -> FolderName
+    currentFolderFilter: 'all', // NEW
     notes: {}, 
     returnPosition: null,
     landingPosition: null,
@@ -35,7 +37,16 @@ const state = {
     searchHistory: [],
     progress: {},
     activeSearchQuery: '',
-    speech: null
+    speech: null,
+    audio: {
+        currentArticleId: null,
+        isPlaying: false,
+        rate: 1.0,
+        utterance: null
+    },
+    // Map State
+    mapZoom: 1,
+    mapPan: { x: 0, y: 0 }
 };
 
 const LS = {
@@ -43,8 +54,11 @@ const LS = {
     TEACHER: 'ic-teacher-mode',
     MARKERS: 'ic-markers-mode',
     FAVORITES: 'ic-favorites',
+    FAV_FOLDERS: 'ic-fav-folders-list', // NEW
+    ARTICLE_FOLDERS: 'ic-article-folders-map', // NEW
     NOTES: 'ic-user-notes',
     FONT: 'ic-font-settings',
+    FONT_TYPE: 'ic-font-type', // NEW
     HIGHSCORE: 'ic-game-highscore',
     SEARCH: 'ic-search-history',
     PROGRESS: 'ic-chapter-progress',
@@ -75,36 +89,36 @@ const MARKERS = {
 /* --- ДАННЫЕ ДЛЯ КАРТЫ --- */
 const FEDERAL_DISTRICTS = {
     "reg-cen": {
-        title: "Центральный федеральный округ",
-        list: "Город федерального значения Москва, Московская область, Белгородская область, Брянская область, Владимирская область, Воронежская область, Ивановская область, Калужская область, Костромская область, Курская область, Липецкая область, Орловская область, Рязанская область, Смоленская область, Тамбовская область, Тверская область, Тульская область, Ярославская область."
+        title: "Центральный ФО",
+        list: "Москва, Московская область, Белгородская область, Брянская область, Владимирская область, Воронежская область, Ивановская область, Калужская область, Костромская область, Курская область, Липецкая область, Орловская область, Рязанская область, Смоленская область, Тамбовская область, Тверская область, Тульская область, Ярославская область"
     },
     "reg-nw": {
-        title: "Северо-Западный федеральный округ",
-        list: "Город федерального значения Санкт-Петербург, Ленинградская область, Архангельская область, Вологодская область, Калининградская область, Мурманская область, Новгородская область, Псковская область, Республика Карелия, Республика Коми, Ненецкий автономный округ."
+        title: "Северо-Западный ФО",
+        list: "Санкт-Петербург, Ленинградская область, Архангельская область, Вологодская область, Калининградская область, Мурманская область, Новгородская область, Псковская область, Республика Карелия, Республика Коми, Ненецкий АО"
     },
     "reg-south": {
-        title: "Южный федеральный округ",
-        list: "Краснодарский край, Астраханская область, Волгоградская область, Ростовская область, Республика Адыгея, Республика Калмыкия, Республика Крым, Город федерального значения Севастополь."
+        title: "Южный ФО",
+        list: "Краснодарский край, Астраханская область, Волгоградская область, Ростовская область, Республика Адыгея, Республика Калмыкия, Республика Крым, Севастополь"
     },
     "reg-kav": {
-        title: "Северо-Кавказский федеральный округ",
-        list: "Ставропольский край, Республика Дагестан, Республика Ингушетия, Кабардино-Балкарская Республика, Карачаево-Черкесская Республика, Республика Северная Осетия — Алания, Чеченская Республика."
+        title: "Северо-Кавказский ФО",
+        list: "Ставропольский край, Республика Дагестан, Республика Ингушетия, Кабардино-Балкарская Республика, Карачаево-Черкесская Республика, Северная Осетия — Алания, Чеченская Республика"
     },
     "reg-vol": {
-        title: "Приволжский федеральный округ",
-        list: "Республика Татарстан, Республика Башкортостан, Чувашская Республика, Пермский край, Нижегородская область, Самарская область, Саратовская область, Ульяновская область, Пензенская область, Оренбургская область, Кировская область, Республика Марий Эл, Республика Мордовия, Удмуртская Республика."
+        title: "Приволжский ФО",
+        list: "Татарстан, Башкортостан, Чувашия, Пермский край, Нижегородская область, Самарская область, Саратовская область, Ульяновская область, Пензенская область, Оренбургская область, Кировская область, Марий Эл, Мордовия, Удмуртия"
     },
     "reg-ural": {
-        title: "Уральский федеральный округ",
-        list: "Свердловская область, Челябинская область, Курганская область, Тюменская область, Ханты-Мансийский автономный округ — Югра, Ямало-Ненецкий автономный округ."
+        title: "Уральский ФО",
+        list: "Свердловская область, Челябинская область, Курганская область, Тюменская область, Ханты-Мансийский АО, Ямало-Ненецкий АО"
     },
     "reg-sib": {
-        title: "Сибирский федеральный округ",
-        list: "Новосибирская область, Омская область, Томская область, Кемеровская область, Иркутская область, Красноярский край, Алтайский край, Республика Алтай, Республика Тыва, Республика Хакасия."
+        title: "Сибирский ФО",
+        list: "Новосибирская область, Омская область, Томская область, Кемеровская область, Иркутская область, Красноярский край, Алтайский край, Республика Алтай, Тыва, Хакасия"
     },
     "reg-fe": {
-        title: "Дальневосточный федеральный округ",
-        list: "Приморский край, Хабаровский край, Амурская область, Магаданская область, Сахалинская область, Республика Саха (Якутия), Республика Бурятия, Забайкальский край, Еврейская автономная область, Чукотский автономный округ, Камчатский край."
+        title: "Дальневосточный ФО",
+        list: "Приморский край, Хабаровский край, Амурская область, Магаданская область, Сахалинская область, Якутия, Бурятия, Забайкальский край, Еврейская АО, Чукотский АО, Камчатский край"
     }
 };
 
@@ -215,16 +229,6 @@ const TASKS_23 = [
             { id: 3, text: "Во взаимоотношениях с федеральными органами все субъекты равноправны", correct: false },
             { id: 4, text: "Гарантия свободы совести и вероисповедания", correct: true },
             { id: 5, text: "Земля и другие природные ресурсы используются как основа жизни", correct: false }
-        ]
-    },
-    {
-        question: "РФ — республиканская форма правления",
-        options: [
-            { id: 1, text: "Глава государства (Президент) избирается сроком на 6 лет", correct: true },
-            { id: 2, text: "Государственная Дума избирается сроком на 5 лет", correct: true },
-            { id: 3, text: "Единственным источником власти является многонациональный народ", correct: false },
-            { id: 4, text: "Высшим непосредственным выражением власти народа являются выборы", correct: true },
-            { id: 5, text: "Осуществление правосудия только судом", correct: false }
         ]
     }
 ];
@@ -367,18 +371,24 @@ function renderFlashcard() {
     $('#fcDef').textContent = DICTIONARY[term];
     $('#fcCounter').textContent = `${flashcards.index + 1} / ${flashcards.terms.length}`;
 
-    // Блокировка кнопок
     $('#fcPrev').disabled = flashcards.index === 0;
     $('#fcNext').disabled = flashcards.index === flashcards.terms.length - 1;
 }
 
-/* --- ШРИФТЫ --- */
+/* --- ШРИФТЫ (UPDATED) --- */
 function initFontSettings() {
     const saved = JSON.parse(localStorage.getItem(LS.FONT));
     if (saved) {
         state.fontSize = saved.size;
         state.lineHeight = saved.height;
     }
+    const savedType = localStorage.getItem(LS.FONT_TYPE);
+    if (savedType) {
+        if (savedType === 'serif') document.body.classList.add('serif-mode');
+        const rb = $(`input[name="fontType"][value="${savedType}"]`);
+        if (rb) rb.checked = true;
+    }
+
     applyFontSettings();
 
     safeAddListener('#fontBtn', 'click', () => {
@@ -390,6 +400,16 @@ function initFontSettings() {
     safeAddListener('#fontDec', 'click', () => changeFont(-1));
     safeAddListener('#lhInc', 'click', () => changeLH(0.1));
     safeAddListener('#lhDec', 'click', () => changeLH(-0.1));
+
+    // Font Type Toggle
+    $$('input[name="fontType"]').forEach(rb => {
+        rb.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'serif') document.body.classList.add('serif-mode');
+            else document.body.classList.remove('serif-mode');
+            localStorage.setItem(LS.FONT_TYPE, val);
+        });
+    });
 }
 
 function changeFont(delta) {
@@ -430,7 +450,7 @@ function initTimer() {
     setInterval(update, 1000 * 60 * 60);
 }
 
-/* --- ПОИСК (FUZZY LOGIC NEW) --- */
+/* --- ПОИСК --- */
 function initSearchHistory() {
     const stored = localStorage.getItem(LS.SEARCH);
     if (stored) state.searchHistory = JSON.parse(stored);
@@ -496,7 +516,6 @@ function performSearch(query) {
     $('#searchHistory').hidden = true;
 }
 
-// Levenshtein Implementation for Fuzzy Search
 function levenshtein(a, b) {
     if (a.length === 0) return b.length;
     if (b.length === 0) return a.length;
@@ -528,19 +547,16 @@ function filterArticles(query) {
         const t = a.title.toLowerCase();
         const body = a.bodyHTML.replace(/<[^>]+>/g, ' ').toLowerCase();
         
-        // Exact match (high priority)
         if (t.includes(query) || body.includes(query)) return true;
 
-        // Fuzzy match (only if query is long enough)
         if (query.length > 3) {
-            // Check words in title
             const titleWords = t.split(/\s+/);
-            const bodyWords = body.split(/\s+/).slice(0, 100); // Check first 100 words for performance
+            const bodyWords = body.split(/\s+/).slice(0, 100); 
             
             const matchWord = (word) => {
                 if (Math.abs(word.length - query.length) > 2) return false;
                 const dist = levenshtein(word, query);
-                return dist <= 2; // Allow 2 mistakes
+                return dist <= 2;
             };
 
             return titleWords.some(matchWord) || bodyWords.some(matchWord);
@@ -586,18 +602,38 @@ function processText(text) {
     return text;
 }
 
+/* --- FAV FOLDERS LOGIC (NEW) --- */
 function loadFavorites() {
     const stored = localStorage.getItem(LS.FAVORITES);
     if (stored) { state.favorites = new Set(JSON.parse(stored)); }
+    
+    const storedFolders = localStorage.getItem(LS.FAV_FOLDERS);
+    if (storedFolders) { state.favFolders = JSON.parse(storedFolders); }
+
+    const storedMap = localStorage.getItem(LS.ARTICLE_FOLDERS);
+    if (storedMap) { state.articleFolders = JSON.parse(storedMap); }
+
     updateFavCount();
 }
 
 function toggleFavorite(id) {
-    if (state.favorites.has(id)) state.favorites.delete(id);
-    else state.favorites.add(id);
+    if (state.favorites.has(id)) {
+        state.favorites.delete(id);
+        delete state.articleFolders[id];
+        saveFolders();
+    } else {
+        state.favorites.add(id);
+        state.articleFolders[id] = 'General'; // Default
+        saveFolders();
+    }
     localStorage.setItem(LS.FAVORITES, JSON.stringify([...state.favorites]));
     updateFavCount();
     renderArticles();
+}
+
+function saveFolders() {
+    localStorage.setItem(LS.FAV_FOLDERS, JSON.stringify(state.favFolders));
+    localStorage.setItem(LS.ARTICLE_FOLDERS, JSON.stringify(state.articleFolders));
 }
 
 function updateFavCount() {
@@ -608,14 +644,39 @@ function updateFavCount() {
 function setFavFilterMode() {
     state.showFavoritesOnly = !state.showFavoritesOnly;
     const btn = $('#favFilterBtn');
-    if (btn) btn.setAttribute('aria-pressed', state.showFavoritesOnly ? 'true' : 'false');
+    const folderUI = $('#favFoldersContainer');
+    
+    if (state.showFavoritesOnly) {
+        btn.setAttribute('aria-pressed', 'true');
+        btn.innerHTML = `⭐ Скрыть избранное <span class="badge">${state.favorites.size}</span>`;
+        folderUI.hidden = false;
+        renderFolderSelect();
+    } else {
+        btn.setAttribute('aria-pressed', 'false');
+        btn.innerHTML = `⭐ Избранное <span class="badge">${state.favorites.size}</span>`;
+        folderUI.hidden = true;
+        state.currentFolderFilter = 'all'; // reset
+    }
+
     const search = $('#searchInput');
     if (search) search.value = '';
     state.activeSearchQuery = '';
     renderArticles();
 }
 
-/* --- ЗАМЕТКИ (NOTES) --- */
+function renderFolderSelect() {
+    const select = $('#folderSelectFilter');
+    select.innerHTML = '<option value="all">Все папки</option>';
+    state.favFolders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        if (f === state.currentFolderFilter) opt.selected = true;
+        select.appendChild(opt);
+    });
+}
+
+/* --- ЗАМЕТКИ --- */
 function loadNotes() {
     const stored = localStorage.getItem(LS.NOTES);
     if (stored) state.notes = JSON.parse(stored);
@@ -772,8 +833,13 @@ function renderArticles(list = state.articles) {
     let displayList = list;
     if (state.showFavoritesOnly) {
         displayList = list.filter(a => state.favorites.has(a.id));
+        // Filter by Folder
+        if (state.currentFolderFilter !== 'all') {
+            displayList = displayList.filter(a => state.articleFolders[a.id] === state.currentFolderFilter);
+        }
+
         if (displayList.length === 0) {
-            container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">В избранном пока ничего нет.</div>';
+            container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--muted)">В этой папке пока ничего нет.</div>';
             return;
         }
     }
@@ -791,6 +857,30 @@ function renderArticles(list = state.articles) {
         card.dataset.articleId = a.id;
         card.id = a.id;
 
+        // FOLDER UI
+        const folderSelector = $('.fav-folder-selector', node);
+        const cardFolderSelect = $('.card-folder-select', node);
+        if (state.favorites.has(a.id)) {
+            folderSelector.hidden = false;
+            // Populate options
+            cardFolderSelect.innerHTML = '';
+            state.favFolders.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                if (state.articleFolders[a.id] === f) opt.selected = true;
+                cardFolderSelect.appendChild(opt);
+            });
+            // Change listener
+            cardFolderSelect.addEventListener('change', (e) => {
+                state.articleFolders[a.id] = e.target.value;
+                saveFolders();
+                if (state.showFavoritesOnly) renderArticles(); // re-render to apply filter
+            });
+        } else {
+            folderSelector.hidden = true;
+        }
+
         const crumbs = $('.breadcrumbs', node);
         const chShort = a.chapterTitle.split('.')[0] || a.chapterTitle;
         crumbs.textContent = `${chShort.trim()} > ${a.title}`;
@@ -798,9 +888,7 @@ function renderArticles(list = state.articles) {
         $('.title', node).textContent = a.title;
 
         let processedBody = processText(a.bodyHTML);
-        // Highlight in Fuzzy Search
         if (state.activeSearchQuery && state.activeSearchQuery.length > 2) {
-             // Simple highlight of the query itself
              const escaped = state.activeSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
              const re = new RegExp(`(${escaped})`, 'gi');
              processedBody = processedBody.replace(re, '<mark>$1</mark>');
@@ -831,9 +919,11 @@ function renderArticles(list = state.articles) {
         favBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFavorite(a.id); });
 
         const audioBtn = $('.btn-audio', node);
-        audioBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSpeech(a.bodyHTML.replace(/<[^>]+>/g, ' '), audioBtn); });
+        audioBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            playArticle(a.id);
+        });
 
-        // SHARE (Цитата)
         const shareBtn = $('.btn-share', node);
         shareBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -848,12 +938,10 @@ function renderArticles(list = state.articles) {
             navigator.clipboard.writeText(window.location.href).then(showToast);
         });
 
-        // NOTE Logic
         const noteBtn = $('.btn-note', node);
         const noteContainer = $('.note-container', node);
         const noteArea = $('.note-area', node);
         
-        // Загрузка заметки
         if (state.notes[a.id]) {
             noteArea.value = state.notes[a.id];
             noteContainer.hidden = false;
@@ -1039,24 +1127,112 @@ function initDictionary() {
     safeAddListener('#closeDictionary', 'click', () => $('#dictionaryDialog').close());
 }
 
-function toggleSpeech(text, btn) {
-    if (window.speechSynthesis.speaking) {
+function initAudioPlayer() {
+    const player = $('#audioPlayer');
+    const playBtn = $('#playerPlayPause');
+    const rateBtn = $('#playerRate');
+    const bar = $('#playerBar');
+
+    if (!player) return;
+
+    safeAddListener('#playerPlayPause', 'click', () => {
+        if (window.speechSynthesis.speaking) {
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                playBtn.textContent = '⏸';
+            } else {
+                window.speechSynthesis.pause();
+                playBtn.textContent = '▶';
+            }
+        } else if (state.audio.currentArticleId) {
+            playArticle(state.audio.currentArticleId);
+        }
+    });
+
+    safeAddListener('#playerClose', 'click', () => {
         window.speechSynthesis.cancel();
-        if (btn.classList.contains('active')) { $$('.btn-audio').forEach(b => b.classList.remove('active')); return; }
-    }
-    $$('.btn-audio').forEach(b => b.classList.remove('active'));
+        player.hidden = true;
+    });
+
+    safeAddListener('#playerRate', 'click', () => {
+        const rates = [1.0, 1.5, 2.0];
+        let idx = rates.indexOf(state.audio.rate);
+        state.audio.rate = rates[(idx + 1) % rates.length];
+        rateBtn.textContent = `x${state.audio.rate}`;
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+            playArticle(state.audio.currentArticleId);
+        }
+    });
+
+    safeAddListener('#playerNext', 'click', playNextArticle);
+    safeAddListener('#playerPrev', 'click', playPrevArticle);
+
+    setInterval(() => {
+        if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+            const w = parseFloat(bar.style.width) || 0;
+            bar.style.width = ((w + 1) % 100) + '%';
+        }
+    }, 100);
+}
+
+function playArticle(id) {
+    const article = state.articles.find(a => a.id === id);
+    if (!article) return;
+
+    window.speechSynthesis.cancel();
+    state.audio.currentArticleId = id;
+    
+    const text = article.bodyHTML.replace(/<[^>]+>/g, ' ');
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ru-RU';
-    utterance.onend = () => { btn.classList.remove('active'); };
-    btn.classList.add('active');
+    utterance.rate = state.audio.rate;
+
+    utterance.onstart = () => {
+        $('#audioPlayer').hidden = false;
+        $('#playerTitle').textContent = article.title;
+        $('#playerPlayPause').textContent = '⏸';
+        state.audio.isPlaying = true;
+    };
+
+    utterance.onend = () => {
+        $('#playerPlayPause').textContent = '▶';
+        state.audio.isPlaying = false;
+        playNextArticle();
+    };
+
     window.speechSynthesis.speak(utterance);
 }
 
+function playNextArticle() {
+    if (!state.audio.currentArticleId) return;
+    const idx = state.articles.findIndex(a => a.id === state.audio.currentArticleId);
+    if (idx !== -1 && idx < state.articles.length - 1) {
+        playArticle(state.articles[idx + 1].id);
+    }
+}
+
+function playPrevArticle() {
+    if (!state.audio.currentArticleId) return;
+    const idx = state.articles.findIndex(a => a.id === state.audio.currentArticleId);
+    if (idx > 0) {
+        playArticle(state.articles[idx - 1].id);
+    }
+}
+
+/* --- IMPROVED MAP LOGIC (ZOOM) --- */
 function initMap() {
     safeAddListener('#closeMap', 'click', () => $('#mapDialog').close());
     const title = $('#mapRegionTitle');
     const list = $('#mapRegionList');
+    const zoomLayer = $('#zoomLayer');
 
+    // Zoom Controls
+    safeAddListener('#zoomIn', 'click', () => changeZoom(0.3));
+    safeAddListener('#zoomOut', 'click', () => changeZoom(-0.3));
+    safeAddListener('#zoomReset', 'click', () => { state.mapZoom = 1; state.mapPan = {x:0,y:0}; updateMapTransform(); });
+
+    // Click on region
     $$('.region').forEach(reg => {
         reg.addEventListener('click', (e) => {
             const id = e.target.id;
@@ -1067,12 +1243,39 @@ function initMap() {
                 const items = data.list.split(',').map(s => s.trim());
                 items.forEach(i => {
                     const li = document.createElement('li');
-                    li.textContent = i;
+                    li.innerHTML = `<span class="flag-placeholder"></span> ${i}`;
                     list.appendChild(li);
                 });
             }
         });
     });
+
+    // Drag Logic
+    const container = $('#mapContainer');
+    let isDragging = false;
+    let startX, startY;
+
+    container.addEventListener('mousedown', e => { isDragging = true; startX = e.clientX - state.mapPan.x; startY = e.clientY - state.mapPan.y; });
+    window.addEventListener('mouseup', () => isDragging = false);
+    container.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        e.preventDefault();
+        state.mapPan.x = e.clientX - startX;
+        state.mapPan.y = e.clientY - startY;
+        updateMapTransform();
+    });
+}
+
+function changeZoom(delta) {
+    state.mapZoom = Math.max(1, Math.min(3, state.mapZoom + delta));
+    updateMapTransform();
+}
+
+function updateMapTransform() {
+    const layer = $('#zoomLayer');
+    if (layer) {
+        layer.style.transform = `translate(${state.mapPan.x}px, ${state.mapPan.y}px) scale(${state.mapZoom})`;
+    }
 }
 
 function initMobileNav() {
@@ -1080,6 +1283,26 @@ function initMobileNav() {
     safeAddListener('#navSearch', 'click', () => { $('#searchInput').focus(); scrollToTop(); });
     safeAddListener('#navFav', 'click', () => { setFavFilterMode(); $('#navFav').classList.toggle('active'); });
     safeAddListener('#navMenu', 'click', () => { $('#sidebarPanel').classList.toggle('visible'); });
+}
+
+/* --- INIT FOLDERS UI HANDLERS --- */
+function initFoldersUI() {
+    safeAddListener('#addFolderBtn', 'click', () => {
+        const name = prompt("Введите название новой папки:");
+        if (name && !state.favFolders.includes(name)) {
+            state.favFolders.push(name);
+            saveFolders();
+            renderFolderSelect();
+        }
+    });
+
+    const select = $('#folderSelectFilter');
+    if (select) {
+        select.addEventListener('change', (e) => {
+            state.currentFolderFilter = e.target.value;
+            renderArticles();
+        });
+    }
 }
 
 async function loadChapters() {
@@ -1165,103 +1388,34 @@ function setMarkersMode(isActive) {
     renderArticles();
 }
 
-/* --- SWIPE NAVIGATION (NEW) --- */
-function initSwipeNavigation() {
-    let touchStartX = 0;
-    let touchStartY = 0;
-    
-    document.addEventListener('touchstart', e => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    }, {passive: true});
-
-    document.addEventListener('touchend', e => {
-        if (e.target.closest('.map-container') || e.target.closest('dialog[open]')) return;
-        
-        const touchEndX = e.changedTouches[0].screenX;
-        const touchEndY = e.changedTouches[0].screenY;
-        
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-
-        // Только горизонтальные свайпы
-        if (Math.abs(deltaX) > 100 && Math.abs(deltaY) < 50) {
-             const articles = $$('.card');
-             if (!articles.length) return;
-             
-             // Находим текущую видимую статью
-             const offset = 150;
-             const current = articles.find(card => {
-                 const rect = card.getBoundingClientRect();
-                 return rect.top >= 0 && rect.top < window.innerHeight / 2;
-             });
-
-             if (current) {
-                 if (deltaX < 0) {
-                     // Swipe Left -> Next
-                     const next = current.nextElementSibling;
-                     if (next && next.classList.contains('card')) {
-                         next.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                     }
-                 } else {
-                     // Swipe Right -> Prev
-                     const prev = current.previousElementSibling;
-                     if (prev && prev.classList.contains('card')) {
-                         prev.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                     }
-                 }
-             }
-        }
-    }, {passive: true});
-}
-
-/* --- CONTEXT MENU (NEW) --- */
 function initContextMenu() {
     const menu = $('#contextMenu');
     if (!menu) return;
 
-    // Скрытие меню при клике
     document.addEventListener('click', (e) => {
-        if (!e.target.closest('#contextMenu')) menu.hidden = true;
+        if (!e.target.closest('#contextMenu') && !e.target.closest('.sheet-btn')) {
+            menu.hidden = true;
+        }
     });
 
     document.addEventListener('selectionchange', debounce(() => {
         const selection = window.getSelection();
-        if (!selection.rangeCount || selection.isCollapsed) {
-            // menu.hidden = true; // Можно скрывать, но лучше оставить пока не кликнут
+        if (!selection.rangeCount || selection.isCollapsed || !selection.toString().trim()) {
             return;
         }
-
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-
-        // Показываем только если выделение внутри контента
-        if (rect.top > 0 && rect.width > 0) {
-             const card = selection.anchorNode.parentElement.closest('.card');
-             if (!card) return;
-
+        const anchor = selection.anchorNode;
+        if (!anchor || !anchor.parentElement) return;
+        const card = anchor.parentElement.closest('.card');
+        
+        if (card) {
              menu.hidden = false;
-             // Позиционируем над выделением
-             let top = rect.top + window.scrollY - 50;
-             let left = rect.left + (rect.width / 2) - (menu.offsetWidth / 2);
-             
-             // Границы экрана
-             if (left < 10) left = 10;
-             if (left + menu.offsetWidth > window.innerWidth) left = window.innerWidth - menu.offsetWidth - 10;
-
-             menu.style.top = `${top}px`;
-             menu.style.left = `${left}px`;
-
-             // Actions
              const text = selection.toString().trim();
              
-             // Copy
              $('#ctxCopy').onclick = () => {
                  navigator.clipboard.writeText(text).then(() => showToast('Скопировано!'));
                  menu.hidden = true;
              };
 
-             // To Note
              $('#ctxNote').onclick = () => {
                  const cardId = card.dataset.articleId;
                  const noteArea = card.querySelector('.note-area');
@@ -1277,18 +1431,41 @@ function initContextMenu() {
                  menu.hidden = true;
              };
 
-             // Dictionary
              $('#ctxDict').onclick = () => {
-                if (DICTIONARY[text.toLowerCase()]) {
-                    alert(`${text}: ${DICTIONARY[text.toLowerCase()]}`);
+                const term = text.toLowerCase().replace(/[.,!?;:]/g, '');
+                if (DICTIONARY[term]) {
+                    alert(`${term.toUpperCase()}: ${DICTIONARY[term]}`);
                 } else {
-                    // Open dict
                     $('#dictionaryBtn').click();
                 }
                 menu.hidden = true;
              };
         }
-    }, 400));
+    }, 500));
+}
+
+function initPWAInstall() {
+    let deferredPrompt;
+    const banner = $('#installBanner');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        banner.hidden = false;
+    });
+
+    safeAddListener('#installDismiss', 'click', () => {
+        banner.hidden = true;
+    });
+
+    safeAddListener('#installAccept', 'click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+        }
+        banner.hidden = true;
+    });
 }
 
 function initEvents() {
@@ -1321,12 +1498,14 @@ function initEvents() {
     const content = $('#content');
     if (content) {
         content.addEventListener('click', e => {
-            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button') || e.target.closest('.note-area')) return;
+            if (e.target.closest('.player-btn') || e.target.closest('.sheet-btn')) return;
+
+            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button') || e.target.closest('.note-area') || e.target.closest('select')) return;
             const card = e.target.closest('.card');
             if (card && e.altKey) openDialogById(card.dataset.articleId);
         });
         content.addEventListener('dblclick', e => {
-            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button') || e.target.closest('.note-area')) return;
+            if (e.target.closest('.term') || e.target.closest('.cross-link') || e.target.closest('button') || e.target.closest('.note-area') || e.target.closest('select')) return;
             const card = e.target.closest('.card');
             if (card) openDialogById(card.dataset.articleId);
         });
@@ -1396,10 +1575,12 @@ function boot() {
     initDictionary(); 
     initMap(); 
     initMobileNav(); 
+    initFoldersUI(); // NEW
     initEvents();
     initSpyScroll();
-    initSwipeNavigation(); // NEW
-    initContextMenu(); // NEW
+    initContextMenu();
+    initAudioPlayer();
+    initPWAInstall();
     initServiceWorker(); 
     loadChapters();
 }

@@ -60,8 +60,17 @@
       </div>
 
       <button id="favFilterBtn" class="btn btn-block" aria-pressed="false">
-        ⭐ Только избранное <span id="favCount" class="badge">0</span>
+        ⭐ Избранное <span id="favCount" class="badge">0</span>
       </button>
+
+      <div id="favFoldersContainer" class="fav-folders" hidden>
+        <div class="fav-actions">
+           <select id="folderSelectFilter" class="folder-select">
+               <option value="all">Все папки</option>
+           </select>
+           <button id="addFolderBtn" class="btn-mini" title="Создать папку">+</button>
+        </div>
+      </div>
 
       <nav id="toc" class="toc" aria-label="Навигация по главам"></nav>
 
@@ -94,10 +103,43 @@
   <button id="backToTop" class="btn-up" aria-label="Вернуться в начало">⬆</button>
   <button id="btn-return" class="btn-return" aria-label="Вернуться назад">↩ Вернуться назад</button>
 
-  <div id="contextMenu" class="context-menu" hidden>
-    <button id="ctxCopy">📋 Копировать</button>
-    <button id="ctxNote">📝 В заметку</button>
-    <button id="ctxDict">📖 Словарь</button>
+  <div id="contextMenu" class="action-sheet" hidden>
+    <div class="action-sheet-header">Выделен текст</div>
+    <div class="action-sheet-body">
+        <button id="ctxCopy" class="sheet-btn">📋 Копировать</button>
+        <button id="ctxNote" class="sheet-btn">📝 В заметку</button>
+        <button id="ctxDict" class="sheet-btn">📖 Найти в словаре</button>
+    </div>
+  </div>
+
+  <div id="audioPlayer" class="audio-player" hidden>
+    <div class="player-info">
+        <span id="playerTitle">Название статьи</span>
+    </div>
+    <div class="player-controls">
+        <button id="playerPrev" class="player-btn">⏮</button>
+        <button id="playerPlayPause" class="player-btn play">▶</button>
+        <button id="playerNext" class="player-btn">⏭</button>
+        <button id="playerRate" class="player-btn rate">x1.0</button>
+        <button id="playerClose" class="player-btn close">✕</button>
+    </div>
+    <div class="player-progress">
+        <div id="playerBar" class="player-bar"></div>
+    </div>
+  </div>
+
+  <div id="installBanner" class="install-banner" hidden>
+    <div class="install-content">
+        <img src="logo.png" alt="Logo" class="install-logo">
+        <div class="install-text">
+            <strong>Установить PrepMate</strong><br>
+            <span>Работает без интернета 🚀</span>
+        </div>
+    </div>
+    <div class="install-actions">
+        <button id="installDismiss" class="btn-ghost">Позже</button>
+        <button id="installAccept" class="btn btn-primary">Установить</button>
+    </div>
   </div>
 
   <div id="toast">Ссылка скопирована!</div>
@@ -115,26 +157,29 @@
       <button id="closeMap" class="btn btn-secondary">Закрыть</button>
     </header>
     <div class="map-wrapper">
-      <div class="map-container">
-        <h4 class="map-instruction">Нажмите на федеральный округ, чтобы увидеть состав</h4>
-
-        <svg id="russiaMap" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
-          <path class="region" id="reg-fe" d="M650,50 L950,50 L980,150 L900,450 L750,500 L600,350 L650,200 Z"
-            data-name="Дальневосточный ФО" />
-          <path class="region" id="reg-sib" d="M450,100 L650,50 L650,200 L600,350 L750,500 L500,550 L400,450 Z"
-            data-name="Сибирский ФО" />
-          <path class="region" id="reg-ural" d="M350,100 L450,100 L400,450 L300,400 Z" data-name="Уральский ФО" />
-          <path class="region" id="reg-nw" d="M150,50 L350,100 L300,250 L100,200 Z" data-name="Северо-Западный ФО" />
-          <path class="region" id="reg-cen" d="M100,200 L300,250 L280,350 L100,300 Z" data-name="Центральный ФО" />
-          <path class="region" id="reg-vol" d="M280,350 L300,250 L300,400 L350,450 L250,450 Z"
-            data-name="Приволжский ФО" />
-          <path class="region" id="reg-south" d="M50,300 L100,300 L100,450 L50,400 Z" data-name="Южный ФО" />
-          <path class="region" id="reg-kav" d="M50,400 L100,450 L80,480 L40,450 Z" data-name="Северо-Кавказский ФО" />
-        </svg>
+      <div class="map-container" id="mapContainer">
+        <div class="map-zoom-controls">
+            <button id="zoomIn" class="btn">+</button>
+            <button id="zoomOut" class="btn">-</button>
+            <button id="zoomReset" class="btn">⟲</button>
+        </div>
+        <h4 class="map-instruction">Нажмите на федеральный округ</h4>
+        <div id="zoomLayer" style="transition: transform 0.2s ease-out; transform-origin: center;">
+            <svg id="russiaMap" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg">
+            <path class="region" id="reg-fe" d="M650,50 L950,50 L980,150 L900,450 L750,500 L600,350 L650,200 Z" data-name="Дальневосточный ФО" />
+            <path class="region" id="reg-sib" d="M450,100 L650,50 L650,200 L600,350 L750,500 L500,550 L400,450 Z" data-name="Сибирский ФО" />
+            <path class="region" id="reg-ural" d="M350,100 L450,100 L400,450 L300,400 Z" data-name="Уральский ФО" />
+            <path class="region" id="reg-nw" d="M150,50 L350,100 L300,250 L100,200 Z" data-name="Северо-Западный ФО" />
+            <path class="region" id="reg-cen" d="M100,200 L300,250 L280,350 L100,300 Z" data-name="Центральный ФО" />
+            <path class="region" id="reg-vol" d="M280,350 L300,250 L300,400 L350,450 L250,450 Z" data-name="Приволжский ФО" />
+            <path class="region" id="reg-south" d="M50,300 L100,300 L100,450 L50,400 Z" data-name="Южный ФО" />
+            <path class="region" id="reg-kav" d="M50,400 L100,450 L80,480 L40,450 Z" data-name="Северо-Кавказский ФО" />
+            </svg>
+        </div>
       </div>
       <div id="mapInfoPanel" class="map-info-panel">
-        <h4 id="mapRegionTitle">Выберите регион на карте</h4>
-        <ul id="mapRegionList"></ul>
+        <h4 id="mapRegionTitle">Выберите регион</h4>
+        <ul id="mapRegionList" class="region-list"></ul>
       </div>
     </div>
   </dialog>
@@ -148,9 +193,7 @@
       <p class="game23-task">На основе положений Конституции РФ сформулируйте и подтвердите характеристику:</p>
       <h2 id="task23Question" class="task23-question">...</h2>
       <p class="game23-hint">Выберите 3 верных положения из списка:</p>
-
       <div id="task23Options" class="task23-options"></div>
-
       <div class="game23-controls">
         <button id="checkTask23Btn" class="btn btn-primary btn-lg" disabled>Проверить ответ</button>
         <button id="nextTask23Btn" class="btn btn-secondary" style="display:none">Следующий вопрос</button>
@@ -209,6 +252,21 @@
   <dialog id="fontSettingsDialog" class="mini-dialog">
     <form method="dialog">
       <h3>Настройки текста</h3>
+      
+      <div class="setting-group">
+        <label>Тип шрифта:</label>
+        <div class="font-family-switch">
+             <label class="radio-label">
+                 <input type="radio" name="fontType" value="sans" checked id="fontSansBtn">
+                 <span>Sans</span>
+             </label>
+             <label class="radio-label">
+                 <input type="radio" name="fontType" value="serif" id="fontSerifBtn">
+                 <span style="font-family: serif;">Serif</span>
+             </label>
+        </div>
+      </div>
+
       <div class="setting-group">
         <label>Размер шрифта:</label>
         <div class="range-controls">
@@ -234,13 +292,11 @@
       <h3>Тренажер полномочий (ЕГЭ №13)</h3>
       <button id="closeGame" class="btn-ghost">✕</button>
     </div>
-
     <div id="gameStartScreen">
       <p>Вам будет дано полномочие. Ваша задача — определить, кто его осуществляет.</p>
       <div class="stats-preview">Рекорд: <span id="highScore">0</span></div>
       <button id="startGameBtn" class="btn btn-primary btn-lg">Начать тренировку</button>
     </div>
-
     <div id="gamePlayScreen" hidden>
       <div class="game-score">Счет: <span id="currentScore">0</span></div>
       <div class="question-card">
@@ -289,10 +345,18 @@
           <a class="deeplink btn btn-ghost" title="Скопировать ссылку на статью">🔗</a>
         </div>
       </header>
+      
+      <div class="fav-folder-selector" hidden>
+        <span class="muted" style="font-size:12px">Папка: </span>
+        <select class="card-folder-select">
+            <option value="General">Общее</option>
+        </select>
+      </div>
+
       <div class="body"></div>
       
       <div class="note-container" hidden>
-          <textarea class="note-area" placeholder="Ваша заметка (например: 'Выучить к четвергу' или 'Спросить у учителя')..."></textarea>
+          <textarea class="note-area" placeholder="Ваша заметка..."></textarea>
       </div>
 
       <details class="explain">
