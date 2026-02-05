@@ -20,7 +20,6 @@ function debounce(func, wait) {
 }
 
 const state = {
-    teacherMode: false,
     markersMode: false,
     showFavoritesOnly: false,
     articles: [],
@@ -44,14 +43,12 @@ const state = {
         rate: 1.0,
         utterance: null
     },
-    // Map State
     mapZoom: 1,
     mapPan: { x: 0, y: 0 }
 };
 
 const LS = {
     THEME: 'ic-theme',
-    TEACHER: 'ic-teacher-mode',
     MARKERS: 'ic-markers-mode',
     FAVORITES: 'ic-favorites',
     FAV_FOLDERS: 'ic-fav-folders-list',
@@ -65,20 +62,58 @@ const LS = {
     CACHE_CHAPTERS: 'ic-chapters-cache'
 };
 
+// --- СЛОВАРЬ ТЕРМИНОВ (Только из текста Конституции) ---
 const DICTIONARY = {
-    "суверенитет": "Независимость государства во внешних делах и верховенство государственной власти во внутренних делах.",
-    "демократическое": "Государство, в котором источником власти является народ, а управление осуществляется через выборы.",
-    "федеративное": "Форма устройства, при которой государство состоит из самостоятельных субъектов (республик, краев), имеющих свои полномочия.",
-    "правовое государство": "Государство, где закон превыше всего, и ему подчиняются все, включая саму власть.",
-    "республиканская": "Форма правления, при которой высшие органы власти избираются на определенный срок.",
-    "светское государство": "Государство, в котором никакая религия не может быть обязательной, а церковь отделена от государства.",
-    "социальное государство": "Государство, политика которого направлена на обеспечение достойной жизни граждан (пенсии, пособия, МРОТ).",
-    "презумпция невиновности": "Принцип, согласно которому человек считается невиновным, пока его вина не доказана судом.",
-    "референдум": "Всенародное голосование граждан по наиболее важным вопросам государственного значения.",
-    "импичмент": "Процедура отрешения Президента от должности парламентом в случае совершения им тяжкого преступления.",
-    "амнистия": "Освобождение от наказания неопределенного круга лиц (объявляется Госдумой).",
-    "помилование": "Освобождение от наказания конкретного лица (осуществляется Президентом).",
-    "экстрадиция": "Выдача преступника другому государству для суда или отбывания наказания."
+    "адвокат": "Квалифицированный юрист, оказывающий профессиональную юридическую помощь (ст. 48 гарантирует право на помощь адвоката).",
+    "амнистия": "Освобождение от наказания неопределенного круга лиц, объявляется Государственной Думой (ст. 103).",
+    "безопасность": "Состояние защищенности жизненно важных интересов личности, общества и государства (ведение РФ - ст. 71).",
+    "бюджет": "Федеральный бюджет — план доходов и расходов государства, принимаемый в виде федерального закона (ст. 114).",
+    "валюта": "Денежная единица страны. В РФ рубль является законным платежным средством (ст. 75).",
+    "вероисповедание": "Принадлежность к какой-либо религии или отказ от неё, гарантированная свобода совести (ст. 28).",
+    "власть": "Способность оказывать воздействие на поведение людей. В РФ власть делится на законодательную, исполнительную и судебную (ст. 10).",
+    "выборы": "Свободное волеизъявление граждан при избрании Президента и депутатов Государственной Думы (ст. 3, 32).",
+    "гражданство": "Устойчивая правовая связь лица с Российской Федерацией (ст. 6).",
+    "демократическое": "Характеристика РФ как государства, где единственным источником власти является народ (ст. 1).",
+    "депутат": "Избранный представитель народа в Государственной Думе (ст. 97).",
+    "договор": "Соглашение двух или более сторон. Международные договоры являются частью правовой системы РФ (ст. 15).",
+    "думе": "Государственная Дума — нижняя палата парламента РФ (ст. 95).",
+    "жилище": "Место проживания гражданина, которое неприкосновенно (ст. 25).",
+    "закон": "Нормативный правовой акт, обладающий высшей юридической силой (после Конституции) (ст. 15, 76).",
+    "здоровье": "Состояние физического и психического благополучия. Каждый имеет право на охрану здоровья (ст. 41).",
+    "имущество": "Материальные ценности, находящиеся в собственности граждан или государства (ст. 35).",
+    "конституция": "Основной закон государства, имеющий высшую юридическую силу и прямое действие (ст. 15).",
+    "местное самоуправление": "Самостоятельное решение населением вопросов местного значения (ст. 12, 130).",
+    "налоги": "Обязательные платежи, взимаемые государством. Каждый обязан платить законно установленные налоги (ст. 57).",
+    "наследство": "Переход имущества умершего к другим лицам. Право наследования гарантируется (ст. 35).",
+    "оборона": "Система мер по защите государства от внешнего нападения (ст. 71, 87).",
+    "образование": "Целенаправленный процесс обучения. Основное общее образование обязательно (ст. 43).",
+    "охрана": "Деятельность государства по защите прав, природы, здоровья и т.д. (ст. 9, 41).",
+    "пенсия": "Регулярная денежная выплата гражданам (по возрасту, инвалидности). Гарантируется социальным государством (ст. 39).",
+    "помилование": "Освобождение конкретного лица от наказания, осуществляется Президентом РФ (ст. 89).",
+    "пошлины": "Денежные сборы, взимаемые уполномоченными органами (ст. 71, 74).",
+    "правительство": "Высший исполнительный орган власти РФ (ст. 110).",
+    "правовое": "Характеристика государства, где закон превыше всего (ст. 1).",
+    "правосудие": "Деятельность судов по рассмотрению и разрешению дел (ст. 118).",
+    "президент": "Глава государства, гарант Конституции РФ (ст. 80).",
+    "присяга": "Торжественное обещание, даваемое Президентом при вступлении в должность (ст. 82).",
+    "прокурор": "Должностное лицо, осуществляющее надзор за соблюдением законов (ст. 129).",
+    "республиканская": "Форма правления РФ, при которой глава государства избирается (ст. 1).",
+    "референдум": "Всенародное голосование по важным вопросам (ст. 3).",
+    "светское": "Государство, где религия отделена от власти (ст. 14).",
+    "свобода": "Возможность человека действовать по своему усмотрению (свобода слова, совести, передвижения) (Глава 2).",
+    "семья": "Союз людей, находящийся под защитой государства (ст. 38).",
+    "собственность": "Право владеть, пользоваться и распоряжаться имуществом (частная, государственная, муниципальная) (ст. 8, 35).",
+    "собрание": "Федеральное Собрание — парламент РФ (ст. 94). Также право собираться мирно (ст. 31).",
+    "совет федерации": "Верхняя палата парламента РФ (ст. 95).",
+    "социальное": "Государство, политика которого направлена на достойную жизнь граждан (ст. 7).",
+    "суверенитет": "Верховенство и независимость власти (ст. 4).",
+    "суд": "Орган, осуществляющий правосудие (ст. 118).",
+    "судья": "Лицо, наделенное полномочиями осуществлять правосудие. Судьи независимы и подчиняются только закону (ст. 120).",
+    "таможня": "Государственный орган, контролирующий перемещение через границу (ст. 74 - таможенные границы).",
+    "труд": "Деятельность человека. Труд свободен, принудительный труд запрещен (ст. 37).",
+    "указ": "Нормативный акт, издаваемый Президентом РФ (ст. 90).",
+    "федерация": "Форма государственного устройства РФ (ст. 1, 5).",
+    "экология": "Вопросы, связанные с окружающей средой. Каждый имеет право на благоприятную окружающую среду (ст. 42)."
 };
 
 const MARKERS = {
@@ -122,23 +157,72 @@ const FEDERAL_DISTRICTS = {
     }
 };
 
-/* --- ИГРА №13 --- */
+/* --- ИГРА №13 (РАСШИРЕННАЯ БАЗА) --- */
 const POWERS = [
-    { text: "Объявление амнистии", target: "gd" },
+    { text: "Назначение выборов Государственной Думы", target: "president" },
+    { text: "Роспуск Государственной Думы", target: "president" },
+    { text: "Назначение референдума", target: "president" },
+    { text: "Внесение законопроектов в Государственную Думу", target: "president" },
+    { text: "Подписание и обнародование федеральных законов", target: "president" },
+    { text: "Ежегодное обращение к Федеральному Собранию", target: "president" },
     { text: "Осуществление помилования", target: "president" },
-    { text: "Назначение выборов Президента РФ", target: "sf" },
-    { text: "Утверждение изменения границ между субъектами РФ", target: "sf" },
-    { text: "Разработка федерального бюджета", target: "gov" },
-    { text: "Управление федеральной собственностью", target: "gov" },
-    { text: "Назначение Председателя Центрального банка", target: "gd" },
-    { text: "Решение вопроса о возможности использования ВС РФ за пределами территории", target: "sf" },
-    { text: "Обеспечение проведения единой финансовой политики", target: "gov" },
-    { text: "Награждение государственными наградами РФ", target: "president" },
-    { text: "Введение военного положения", target: "president" },
-    { text: "Объявление недоверия Правительству РФ", target: "gd" },
-    { text: "Назначение судей Конституционного Суда", target: "sf" },
+    { text: "Решение вопросов гражданства РФ", target: "president" },
+    { text: "Предоставление политического убежища", target: "president" },
+    { text: "Награждение государственными наградами", target: "president" },
+    { text: "Присвоение почетных званий", target: "president" },
+    { text: "Присвоение высших воинских званий", target: "president" },
+    { text: "Назначение Председателя Правительства РФ (с согласия ГД)", target: "president" },
+    { text: "Принятие отставки Правительства РФ", target: "president" },
+    { text: "Назначение федеральных министров", target: "president" },
     { text: "Руководство внешней политикой РФ", target: "president" },
-    { text: "Обеспечение поддержки НКО и волонтеров", target: "gov" }
+    { text: "Ведение переговоров и подписание международных договоров", target: "president" },
+    { text: "Назначение послов (после консультаций с парламентом)", target: "president" },
+    { text: "Утверждение военной доктрины", target: "president" },
+    { text: "Является Верховным Главнокомандующим", target: "president" },
+    { text: "Введение военного положения", target: "president" },
+    { text: "Введение чрезвычайного положения", target: "president" },
+    { text: "Назначение судей федеральных судов (кроме высших)", target: "president" },
+    { text: "Представление Совету Федерации кандидатур судей высших судов", target: "president" },
+    { text: "Представление Совету Федерации кандидатуры Генпрокурора", target: "president" },
+    { text: "Формирование Государственного Совета", target: "president" },
+    { text: "Формирование Совета Безопасности", target: "president" },
+    { text: "Назначение Администрации Президента", target: "president" },
+    { text: "Утверждение изменения границ между субъектами РФ", target: "sf" },
+    { text: "Утверждение указа Президента о введении военного положения", target: "sf" },
+    { text: "Утверждение указа Президента о введении чрезвычайного положения", target: "sf" },
+    { text: "Решение вопроса о возможности использования ВС РФ за пределами территории", target: "sf" },
+    { text: "Назначение выборов Президента РФ", target: "sf" },
+    { text: "Отрешение Президента РФ от должности", target: "sf" },
+    { text: "Назначение судей Конституционного Суда РФ", target: "sf" },
+    { text: "Назначение судей Верховного Суда РФ", target: "sf" },
+    { text: "Назначение Генерального прокурора РФ (по представлению Президента)", target: "sf" },
+    { text: "Назначение заместителей Генерального прокурора", target: "sf" },
+    { text: "Назначение Председателя Счетной палаты", target: "sf" },
+    { text: "Дача согласия Президенту на назначение Председателя Правительства", target: "gd" },
+    { text: "Утверждение кандидатур заместителей Председателя Правительства", target: "gd" },
+    { text: "Утверждение кандидатур федеральных министров (не силовых)", target: "gd" },
+    { text: "Решение вопроса о доверии Правительству РФ", target: "gd" },
+    { text: "Назначение Председателя Центрального банка РФ", target: "gd" },
+    { text: "Освобождение от должности Председателя Центрального банка", target: "gd" },
+    { text: "Назначение заместителя Председателя Счетной палаты", target: "gd" },
+    { text: "Назначение Уполномоченного по правам человека", target: "gd" },
+    { text: "Объявление амнистии", target: "gd" },
+    { text: "Выдвижение обвинения против Президента РФ", target: "gd" },
+    { text: "Разработка федерального бюджета", target: "gov" },
+    { text: "Представление федерального бюджета Государственной Думе", target: "gov" },
+    { text: "Обеспечение исполнения федерального бюджета", target: "gov" },
+    { text: "Представление отчета об исполнении бюджета", target: "gov" },
+    { text: "Обеспечение проведения единой финансовой политики", target: "gov" },
+    { text: "Проведение единой политики в области культуры", target: "gov" },
+    { text: "Проведение единой политики в области науки и образования", target: "gov" },
+    { text: "Проведение единой политики в области здравоохранения", target: "gov" },
+    { text: "Проведение единой политики в области социального обеспечения", target: "gov" },
+    { text: "Проведение единой политики в области экологии", target: "gov" },
+    { text: "Управление федеральной собственностью", target: "gov" },
+    { text: "Осуществление мер по обеспечению обороны страны", target: "gov" },
+    { text: "Осуществление мер по обеспечению государственной безопасности", target: "gov" },
+    { text: "Поддержка добровольческой (волонтерской) деятельности", target: "gov" },
+    { text: "Содействие развитию предпринимательства", target: "gov" }
 ];
 
 const game = { score: 0, currentQuestion: null, isBusy: false };
@@ -209,26 +293,66 @@ function updateGameScore() {
     if (sc) sc.textContent = game.score;
 }
 
-/* --- ЗАДАНИЕ №23 --- */
+/* --- ЗАДАНИЕ №23 (РАСШИРЕННАЯ БАЗА) --- */
 const TASKS_23 = [
     {
         question: "РФ — социальное государство",
         options: [
             { id: 1, text: "Охрана труда и здоровья людей", correct: true },
             { id: 2, text: "Установление гарантированного МРОТ", correct: true },
-            { id: 3, text: "Разделение государственной власти на три ветви", correct: false },
-            { id: 4, text: "Обеспечение государственной поддержки семьи", correct: true },
-            { id: 5, text: "Признание идеологического многообразия", correct: false }
+            { id: 3, text: "Обеспечение государственной поддержки семьи, материнства, отцовства и детства", correct: true },
+            { id: 4, text: "Развитие системы социальных служб", correct: true },
+            { id: 5, text: "Установление государственных пенсий и пособий", correct: true },
+            { id: 6, text: "Разделение государственной власти на три ветви", correct: false },
+            { id: 7, text: "Признание идеологического многообразия", correct: false }
         ]
     },
     {
         question: "РФ — светское государство",
         options: [
-            { id: 1, text: "Никакая религия не может устанавливаться в качестве государственной", correct: true },
+            { id: 1, text: "Никакая религия не может устанавливаться в качестве государственной или обязательной", correct: true },
             { id: 2, text: "Религиозные объединения отделены от государства", correct: true },
-            { id: 3, text: "Во взаимоотношениях с федеральными органами все субъекты равноправны", correct: false },
+            { id: 3, text: "Религиозные объединения равны перед законом", correct: true },
             { id: 4, text: "Гарантия свободы совести и вероисповедания", correct: true },
-            { id: 5, text: "Земля и другие природные ресурсы используются как основа жизни", correct: false }
+            { id: 5, text: "Каждый вправе исповедовать любую религию или не исповедовать никакой", correct: true },
+            { id: 6, text: "Земля используется как основа жизни народов", correct: false },
+            { id: 7, text: "Во взаимоотношениях с федеральными органами все субъекты равноправны", correct: false }
+        ]
+    },
+    {
+        question: "РФ — демократическое государство",
+        options: [
+            { id: 1, text: "Носителем суверенитета и единственным источником власти является народ", correct: true },
+            { id: 2, text: "Народ осуществляет свою власть непосредственно, а также через органы власти", correct: true },
+            { id: 3, text: "Высшим непосредственным выражением власти народа являются референдум и выборы", correct: true },
+            { id: 4, text: "Признание политического многообразия и многопартийности", correct: true },
+            { id: 5, text: "Местное самоуправление в пределах своих полномочий самостоятельно", correct: true },
+            { id: 6, text: "Отделение церкви от государства", correct: false },
+            { id: 7, text: "Обеспечение поддержки инвалидов и пожилых граждан", correct: false }
+        ]
+    },
+    {
+        question: "РФ — правовое государство",
+        options: [
+            { id: 1, text: "Верховенство закона и Конституции", correct: true },
+            { id: 2, text: "Человек, его права и свободы являются высшей ценностью", correct: true },
+            { id: 3, text: "Обязанность государства признавать, соблюдать и защищать права человека", correct: true },
+            { id: 4, text: "Все равны перед законом и судом", correct: true },
+            { id: 5, text: "Осуществление прав и свобод не должно нарушать права других лиц", correct: true },
+            { id: 6, text: "Наличие единой денежной единицы", correct: false },
+            { id: 7, text: "Установление государственных пенсий", correct: false }
+        ]
+    },
+    {
+        question: "РФ — федеративное государство",
+        options: [
+            { id: 1, text: "Состоит из республик, краев, областей, городов федерального значения", correct: true },
+            { id: 2, text: "Равноправие субъектов РФ", correct: true },
+            { id: 3, text: "Разграничение предметов ведения между РФ и субъектами", correct: true },
+            { id: 4, text: "Государственная целостность", correct: true },
+            { id: 5, text: "Единство системы государственной власти", correct: true },
+            { id: 6, text: "Никакая религия не может быть государственной", correct: false },
+            { id: 7, text: "Охрана труда и здоровья людей", correct: false }
         ]
     },
     {
@@ -236,9 +360,117 @@ const TASKS_23 = [
         options: [
             { id: 1, text: "Глава государства (Президент) избирается сроком на 6 лет", correct: true },
             { id: 2, text: "Государственная Дума избирается сроком на 5 лет", correct: true },
-            { id: 3, text: "Единственным источником власти является многонациональный народ", correct: false },
-            { id: 4, text: "Высшим непосредственным выражением власти народа являются выборы", correct: true },
-            { id: 5, text: "Осуществление правосудия только судом", correct: false }
+            { id: 3, text: "Высшие органы власти являются выборными и сменяемыми", correct: true },
+            { id: 4, text: "Главы субъектов Федерации избираются", correct: true },
+            { id: 5, text: "Осуществление правосудия только судом", correct: false },
+            { id: 6, text: "Признание идеологического многообразия", correct: false }
+        ]
+    },
+    {
+        question: "РФ — суверенное государство",
+        options: [
+            { id: 1, text: "Суверенитет РФ распространяется на всю её территорию", correct: true },
+            { id: 2, text: "Конституция РФ и законы имеют верховенство на всей территории", correct: true },
+            { id: 3, text: "РФ обеспечивает целостность и неприкосновенность своей территории", correct: true },
+            { id: 4, text: "Запрет на отчуждение части территории РФ", correct: true },
+            { id: 5, text: "Охрана труда и здоровья", correct: false },
+            { id: 6, text: "Гарантия свободы совести", correct: false }
+        ]
+    },
+    {
+        question: "Единство экономического пространства",
+        options: [
+            { id: 1, text: "Свободное перемещение товаров, услуг и финансовых средств", correct: true },
+            { id: 2, text: "Поддержка конкуренции", correct: true },
+            { id: 3, text: "Свобода экономической деятельности", correct: true },
+            { id: 4, text: "Признание и защита равным образом частной, государственной, муниципальной собственности", correct: true },
+            { id: 5, text: "Запрет на установление таможенных границ внутри страны", correct: true },
+            { id: 6, text: "Разделение властей на три ветви", correct: false },
+            { id: 7, text: "Светский характер государства", correct: false }
+        ]
+    },
+    {
+        question: "Идеологическое многообразие",
+        options: [
+            { id: 1, text: "Никакая идеология не может устанавливаться в качестве государственной", correct: true },
+            { id: 2, text: "Признание политического многообразия и многопартийности", correct: true },
+            { id: 3, text: "Общественные объединения равны перед законом", correct: true },
+            { id: 4, text: "Свобода мысли и слова", correct: true },
+            { id: 5, text: "Запрет цензуры", correct: true },
+            { id: 6, text: "Обеспечение государственной поддержки семьи", correct: false },
+            { id: 7, text: "Единство экономического пространства", correct: false }
+        ]
+    },
+    {
+        question: "Гарантия презумпции невиновности",
+        options: [
+            { id: 1, text: "Каждый обвиняемый считается невиновным, пока его вина не будет доказана", correct: true },
+            { id: 2, text: "Обвиняемый не обязан доказывать свою невиновность", correct: true },
+            { id: 3, text: "Неустранимые сомнения в виновности толкуются в пользу обвиняемого", correct: true },
+            { id: 4, text: "Никто не обязан свидетельствовать против самого себя", correct: true },
+            { id: 5, text: "Свобода передвижения", correct: false },
+            { id: 6, text: "Право на охрану здоровья", correct: false }
+        ]
+    },
+    {
+        question: "Гарантия личных (гражданских) прав",
+        options: [
+            { id: 1, text: "Право на жизнь", correct: true },
+            { id: 2, text: "Достоинство личности охраняется государством", correct: true },
+            { id: 3, text: "Право на свободу и личную неприкосновенность", correct: true },
+            { id: 4, text: "Неприкосновенность жилища", correct: true },
+            { id: 5, text: "Тайна переписки и телефонных переговоров", correct: true },
+            { id: 6, text: "Право избирать и быть избранным", correct: false },
+            { id: 7, text: "Право на участие в управлении делами государства", correct: false }
+        ]
+    },
+    {
+        question: "Гарантия политических прав",
+        options: [
+            { id: 1, text: "Право избирать и быть избранным", correct: true },
+            { id: 2, text: "Право на участие в управлении делами государства", correct: true },
+            { id: 3, text: "Равный доступ к государственной службе", correct: true },
+            { id: 4, text: "Право собираться мирно, без оружия (митинги)", correct: true },
+            { id: 5, text: "Право на объединение (создание профсоюзов, партий)", correct: true },
+            { id: 6, text: "Право на охрану здоровья", correct: false },
+            { id: 7, text: "Право на благоприятную окружающую среду", correct: false }
+        ]
+    },
+    {
+        question: "Гарантия социально-экономических прав",
+        options: [
+            { id: 1, text: "Свобода предпринимательской деятельности", correct: true },
+            { id: 2, text: "Право частной собственности", correct: true },
+            { id: 3, text: "Свобода труда", correct: true },
+            { id: 4, text: "Право на отдых", correct: true },
+            { id: 5, text: "Право на социальное обеспечение по возрасту", correct: true },
+            { id: 6, text: "Право на жилище", correct: true },
+            { id: 7, text: "Право на жизнь", correct: false }
+        ]
+    },
+    {
+        question: "Гарантия культурных прав",
+        options: [
+            { id: 1, text: "Свобода литературного, художественного и научного творчества", correct: true },
+            { id: 2, text: "Право на участие в культурной жизни", correct: true },
+            { id: 3, text: "Право на пользование учреждениями культуры", correct: true },
+            { id: 4, text: "Доступ к культурным ценностям", correct: true },
+            { id: 5, text: "Охрана интеллектуальной собственности", correct: true },
+            { id: 6, text: "Право на судебную защиту", correct: false },
+            { id: 7, text: "Неприкосновенность частной жизни", correct: false }
+        ]
+    },
+    {
+        question: "Обязанности гражданина РФ",
+        options: [
+            { id: 1, text: "Соблюдать Конституцию и законы", correct: true },
+            { id: 2, text: "Платить законно установленные налоги и сборы", correct: true },
+            { id: 3, text: "Сохранять природу и окружающую среду", correct: true },
+            { id: 4, text: "Защищать Отечество", correct: true },
+            { id: 5, text: "Заботиться о сохранении исторического и культурного наследия", correct: true },
+            { id: 6, text: "Заботиться о детях и нетрудоспособных родителях", correct: true },
+            { id: 7, text: "Участвовать в выборах", correct: false },
+            { id: 8, text: "Вступать в политические партии", correct: false }
         ]
     }
 ];
@@ -248,6 +480,8 @@ const game23 = { currentTaskIndex: 0, selectedIds: new Set() };
 function initGame23() {
     safeAddListener('#game23Btn', 'click', () => {
         game23.currentTaskIndex = 0;
+        // Перемешать порядок заданий при каждом открытии
+        TASKS_23.sort(() => Math.random() - 0.5);
         renderTask23();
         $('#game23Dialog').showModal();
     });
@@ -267,6 +501,7 @@ function renderTask23() {
     $('#task23Question').textContent = task.question;
     const container = $('#task23Options');
     container.innerHTML = '';
+    // Перемешиваем варианты ответов
     const shuffled = [...task.options].sort(() => Math.random() - 0.5);
 
     shuffled.forEach(opt => {
@@ -917,9 +1152,9 @@ function renderArticles(list = state.articles) {
                 processedExplain = processedExplain.replace(re, '<mark>$1</mark>');
             }
             $('.explain-body', node).innerHTML = processedExplain;
-
-            if (foundInExplain) { explain.hidden = false; explain.open = true; }
-            else { explain.hidden = !state.teacherMode; explain.open = false; }
+            
+            // ALWAYS VISIBLE (removed TeacherMode check)
+            if (foundInExplain) { explain.open = true; }
         } else { explain.hidden = true; }
 
         const favBtn = $('.btn-fav', node);
@@ -1145,6 +1380,11 @@ function initAudioPlayer() {
 
     if (!player) return;
 
+    // Toggle Player Visibility Button
+    safeAddListener('#openPlayerBtn', 'click', () => {
+        player.hidden = !player.hidden;
+    });
+
     safeAddListener('#playerPlayPause', 'click', () => {
         if (window.speechSynthesis.speaking) {
             if (window.speechSynthesis.paused) {
@@ -1315,7 +1555,6 @@ function initFoldersUI() {
     }
 }
 
-/* --- PWA INSTALL (UPDATED: SHOW BUTTON) --- */
 function initPWAInstall() {
     let deferredPrompt;
     const btn = $('#installBtn');
@@ -1336,154 +1575,13 @@ function initPWAInstall() {
     });
 }
 
-async function loadChapters() {
-    const container = $('#content');
-    const cachedData = localStorage.getItem(LS.CACHE_CHAPTERS);
-    if (cachedData) {
-        try {
-            state.articles = JSON.parse(cachedData);
-            renderArticles(); buildTOC();
-            if (container) container.classList.remove('loading');
-        } catch (e) { console.error(e); }
-    }
-
-    try {
-        const files = [
-            'chapters/chapter1.html', 'chapters/chapter2.html', 'chapters/chapter3.html',
-            'chapters/chapter4.html', 'chapters/chapter5.html', 'chapters/chapter6.html',
-            'chapters/chapter7.html', 'chapters/chapter8.html', 'chapters/chapter9.html'
-        ];
-        
-        const results = await Promise.allSettled(files.map(f => fetch(f).then(r => {
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            return r.text();
-        })));
-
-        let newArticles = [];
-        const parser = new DOMParser();
-
-        results.forEach((res, index) => {
-            if (res.status === 'fulfilled') {
-                const html = res.value;
-                const doc = parser.parseFromString(html, 'text/html');
-                const chapterTitle = doc.querySelector('h2')?.textContent?.trim() || `Глава ${index + 1}`;
-                doc.querySelectorAll('article.interactive-article, article').forEach(artNode => {
-                    const id = artNode.id || `article-${index}-${Math.random().toString(36).slice(2, 7)}`;
-                    const title = artNode.getAttribute('data-title') || artNode.querySelector('h3')?.textContent?.trim() || 'Статья';
-                    const bodyClone = artNode.cloneNode(true);
-                    bodyClone.querySelector('h3')?.remove();
-                    const explain = artNode.getAttribute('data-comment') || '';
-                    newArticles.push({ id, title, bodyHTML: bodyClone.innerHTML, explainHTML: explain, chapterTitle });
-                });
-            } else {
-                console.error(`Ошибка загрузки главы ${index + 1}:`, res.reason);
-            }
-        });
-
-        if (newArticles.length > 0) {
-            state.articles = newArticles;
-            try { localStorage.setItem(LS.CACHE_CHAPTERS, JSON.stringify(newArticles)); } catch (e) { }
-            renderArticles(); buildTOC(); applyFontSettings();
-        } else if (!cachedData) {
-            throw new Error("Не удалось загрузить ни одной главы.");
-        }
-        
-        if (container) container.classList.remove('loading');
-        updateScrollState();
-    } catch (e) {
-        if (!state.articles.length && container) {
-            container.innerHTML = `<div class="error" style="color:red;padding:20px;border:1px solid red">Ошибка загрузки: ${e.message}. Проверьте соединение.</div>`;
-        }
-    }
-}
-
-function openDialogById(id) {
-    const art = state.articles.find(x => x.id === id); if (!art) return;
-    const dlg = $('#articleDialog'); if (!dlg) return;
-    $('#dialogTitle').textContent = art.title;
-    $('#dialogBody').innerHTML = processText(art.bodyHTML) + (art.explainHTML ? `<hr><div class="muted">Пояснение:</div>${processText(art.explainHTML)}` : '');
-    initDynamicEvents($('#dialogBody'));
-    dlg.showModal();
-}
-
-function setTeacherMode(isActive) {
-    state.teacherMode = isActive; localStorage.setItem(LS.TEACHER, isActive ? '1' : '0');
-    const btn = $('#teacherModeBtn'); if (btn) btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    const toggle = $('#toggleExplanations'); if (toggle) toggle.checked = isActive;
-    if (!state.activeSearchQuery) { $$('#content details.explain').forEach(d => d.hidden = !isActive); } else { renderArticles(); }
-}
-
-function setMarkersMode(isActive) {
-    state.markersMode = isActive; localStorage.setItem(LS.MARKERS, isActive ? '1' : '0');
-    const btn = $('#markersBtn'); if (btn) btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-    renderArticles();
-}
-
-function initContextMenu() {
-    const menu = $('#contextMenu');
-    if (!menu) return;
-
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#contextMenu') && !e.target.closest('.sheet-btn')) {
-            menu.hidden = true;
-        }
-    });
-
-    document.addEventListener('selectionchange', debounce(() => {
-        const selection = window.getSelection();
-        if (!selection.rangeCount || selection.isCollapsed || !selection.toString().trim()) {
-            return;
-        }
-        const anchor = selection.anchorNode;
-        if (!anchor || !anchor.parentElement) return;
-        const card = anchor.parentElement.closest('.card');
-        
-        if (card) {
-             menu.hidden = false;
-             const text = selection.toString().trim();
-             
-             $('#ctxCopy').onclick = () => {
-                 navigator.clipboard.writeText(text).then(() => showToast('Скопировано!'));
-                 menu.hidden = true;
-             };
-
-             $('#ctxNote').onclick = () => {
-                 const cardId = card.dataset.articleId;
-                 const noteArea = card.querySelector('.note-area');
-                 const noteContainer = card.querySelector('.note-container');
-                 
-                 if (noteArea) {
-                     noteContainer.hidden = false;
-                     noteArea.value = (noteArea.value ? noteArea.value + '\n' : '') + text;
-                     saveNote(cardId, noteArea.value);
-                     card.querySelector('.btn-note').classList.add('active');
-                     noteArea.scrollIntoView({behavior: 'smooth', block: 'center'});
-                 }
-                 menu.hidden = true;
-             };
-
-             $('#ctxDict').onclick = () => {
-                const term = text.toLowerCase().replace(/[.,!?;:]/g, '');
-                if (DICTIONARY[term]) {
-                    alert(`${term.toUpperCase()}: ${DICTIONARY[term]}`);
-                } else {
-                    $('#dictionaryBtn').click();
-                }
-                menu.hidden = true;
-             };
-        }
-    }, 500));
-}
-
 function initEvents() {
     safeAddListener('#themeToggle', 'click', toggleTheme);
     safeAddListener('#printBtn', 'click', () => window.print());
-    safeAddListener('#teacherModeBtn', 'click', () => setTeacherMode(!state.teacherMode));
     safeAddListener('#markersBtn', 'click', () => setMarkersMode(!state.markersMode));
     safeAddListener('#favFilterBtn', 'click', setFavFilterMode);
     safeAddListener('#closeDialog', 'click', () => $('#articleDialog').close());
-    safeAddListener('#toggleExplanations', 'change', e => setTeacherMode(e.target.checked));
-
+    
     $$('dialog').forEach(dlg => {
         dlg.addEventListener('click', (e) => {
             const rect = dlg.getBoundingClientRect();
@@ -1565,9 +1663,88 @@ function initServiceWorker() {
     }
 }
 
+async function loadChapters() {
+    const container = $('#content');
+    const cachedData = localStorage.getItem(LS.CACHE_CHAPTERS);
+    if (cachedData) {
+        try {
+            state.articles = JSON.parse(cachedData);
+            renderArticles(); buildTOC();
+            if (container) container.classList.remove('loading');
+        } catch (e) { console.error(e); }
+    }
+
+    try {
+        const files = [
+            'chapters/chapter1.html', 'chapters/chapter2.html', 'chapters/chapter3.html',
+            'chapters/chapter4.html', 'chapters/chapter5.html', 'chapters/chapter6.html',
+            'chapters/chapter7.html', 'chapters/chapter8.html', 'chapters/chapter9.html'
+        ];
+        
+        const results = await Promise.allSettled(files.map(f => fetch(f).then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.text();
+        })));
+
+        let newArticles = [];
+        const parser = new DOMParser();
+
+        results.forEach((res, index) => {
+            if (res.status === 'fulfilled') {
+                const html = res.value;
+                const doc = parser.parseFromString(html, 'text/html');
+                const chapterTitle = doc.querySelector('h2')?.textContent?.trim() || `Глава ${index + 1}`;
+                doc.querySelectorAll('article.interactive-article, article').forEach(artNode => {
+                    const id = artNode.id || `article-${index}-${Math.random().toString(36).slice(2, 7)}`;
+                    const title = artNode.getAttribute('data-title') || artNode.querySelector('h3')?.textContent?.trim() || 'Статья';
+                    
+                    // Парсинг пояснений
+                    let explain = artNode.getAttribute('data-comment') || '';
+                    const explainNode = artNode.querySelector('.explanation-source');
+                    if (explainNode) {
+                        explain = explainNode.innerHTML;
+                        explainNode.remove();
+                    }
+
+                    const bodyClone = artNode.cloneNode(true);
+                    bodyClone.querySelector('h3')?.remove();
+                    newArticles.push({ id, title, bodyHTML: bodyClone.innerHTML, explainHTML: explain, chapterTitle });
+                });
+            } else {
+                console.error(`Ошибка загрузки главы ${index + 1}:`, res.reason);
+            }
+        });
+
+        if (newArticles.length > 0) {
+            state.articles = newArticles;
+            try { localStorage.setItem(LS.CACHE_CHAPTERS, JSON.stringify(newArticles)); } catch (e) { }
+            renderArticles(); buildTOC(); applyFontSettings();
+        } else if (!cachedData) {
+            throw new Error("Не удалось загрузить ни одной главы.");
+        }
+        
+        if (container) container.classList.remove('loading');
+        updateScrollState();
+    } catch (e) {
+        if (!state.articles.length && container) {
+            container.innerHTML = `<div class="error" style="color:red;padding:20px;border:1px solid red">Ошибка загрузки: ${e.message}. Проверьте соединение.</div>`;
+        }
+    }
+}
+
+function openDialogById(id) {
+    const art = state.articles.find(x => x.id === id); if (!art) return;
+    const dlg = $('#articleDialog'); if (!dlg) return;
+    $('#dialogTitle').textContent = art.title;
+    $('#dialogBody').innerHTML = processText(art.bodyHTML) + (art.explainHTML ? `<hr><div class="muted">Пояснение:</div>${processText(art.explainHTML)}` : '');
+    initDynamicEvents($('#dialogBody'));
+    dlg.showModal();
+}
+
 function boot() {
+    if (window.speechSynthesis) window.speechSynthesis.cancel(); // Force stop audio
+
     applyTheme(true);
-    const teacherMode = localStorage.getItem(LS.TEACHER) === '1'; setTeacherMode(teacherMode);
     const markersMode = localStorage.getItem(LS.MARKERS) === '1'; state.markersMode = markersMode;
     const mBtn = $('#markersBtn'); if (mBtn) mBtn.setAttribute('aria-pressed', markersMode ? 'true' : 'false');
 

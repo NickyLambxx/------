@@ -31,6 +31,8 @@
     <div class="header-tools">
       <button id="installBtn" class="btn btn-accent" hidden aria-label="Установить приложение" title="Установить как приложение">📲</button>
       
+      <button id="openPlayerBtn" class="btn" aria-label="Открыть плеер" title="Аудио-плеер">🎧</button>
+
       <button id="flashcardsBtn" class="btn" aria-label="Карточки" title="Учить термины (Flashcards)">🗂️</button>
       <button id="dictionaryBtn" class="btn" aria-label="Словарь" title="Словарь терминов">📖</button>
       <button id="game23Btn" class="btn" aria-label="Задание 23" title="ЕГЭ Задание №23">📋</button>
@@ -40,8 +42,6 @@
       <button id="markersBtn" class="btn" aria-pressed="false" aria-label="Подсветка ключевых слов"
         title="Подсветка слов-маркеров">🖍️</button>
       <button id="themeToggle" class="btn" aria-label="Переключить тему" title="Сменить тему">🌓</button>
-      <button id="teacherModeBtn" class="btn" aria-pressed="false" aria-label="Учебный режим"
-        title="Учительский режим">🎓</button>
     </div>
 
     <div id="scrollProgress" class="progress">
@@ -309,13 +309,7 @@
         </menu>
       </header>
       <article id="dialogBody"></article>
-      <footer class="dialog-footer">
-        <label class="toggle">
-          <input type="checkbox" id="toggleExplanations" />
-          <span>Показывать пояснения (учебный режим)</span>
-        </label>
-      </footer>
-    </form>
+      </form>
   </dialog>
 
   <template id="articleCardTmpl">
